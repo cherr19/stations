@@ -17,6 +17,7 @@ import { calculateScore, getDecision, formatCellValue } from './scoring'
 import { buildMyAnswersMd, buildReportMd } from './exportMd'
 import * as logger from './logger'
 import SandboxChat from './SandboxChat'
+import { runAiAnalysis, isAiAnalysisAvailable } from './aiAnalysis'
 
 const USER_LABELS = { tanya: 'Таня', alena: 'Алена' }
 const USER_COLORS = {
@@ -156,6 +157,11 @@ export default function FoundersVisionTool() {
   const [sandboxMessages, setSandboxMessages] = useState([])
   const [lockedUserFromUrl, setLockedUserFromUrl] = useState(null)
   const [roomsWithData, setRoomsWithData] = useState([])
+  const [aiAnalysis, setAiAnalysis] = useState(null)
+  const [aiAnalysisAt, setAiAnalysisAt] = useState(null)
+  const [roomUpdatedAt, setRoomUpdatedAt] = useState(null)
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false)
+  const [aiAnalysisError, setAiAnalysisError] = useState(null)
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === 'undefined') return false
     storage.applyAdminFromUrl()
@@ -321,10 +327,14 @@ export default function FoundersVisionTool() {
   const loadBothForComparison = useCallback(async () => {
     if (!roomId) return
     setIsLoading(true)
+    setAiAnalysisError(null)
     try {
-      const { tanyaData: t, alenaData: a } = await storage.loadRoom(roomId)
-      setTanyaData(t || {})
-      setAlenaData(a || {})
+      const room = await storage.loadRoom(roomId)
+      setTanyaData(room.tanyaData || {})
+      setAlenaData(room.alenaData || {})
+      setAiAnalysis(room.aiAnalysis ?? null)
+      setAiAnalysisAt(room.aiAnalysisAt ?? null)
+      setRoomUpdatedAt(room.roomUpdatedAt ?? null)
     } catch (e) {
       console.error(e)
     } finally {
@@ -332,12 +342,50 @@ export default function FoundersVisionTool() {
     }
   }, [roomId])
 
+  const isAiAnalysisOutdated = roomUpdatedAt && aiAnalysisAt && new Date(roomUpdatedAt) > new Date(aiAnalysisAt)
+
+  const runAiAnalysisForRoom = useCallback(async () => {
+    if (!roomId || !isAiAnalysisAvailable()) return
+    setAiAnalysisLoading(true)
+    setAiAnalysisError(null)
+    try {
+      const { score, max, details } = calculateScore(tanyaData, alenaData)
+      const pct = max > 0 ? ((score / max) * 100).toFixed(1) : '0'
+      const result = await runAiAnalysis({
+        tanyaData,
+        alenaData,
+        score,
+        max,
+        pct,
+        details,
+      })
+      await storage.saveAiAnalysis(roomId, result)
+      setAiAnalysis(result)
+      setAiAnalysisAt(new Date().toISOString())
+    } catch (e) {
+      const msg = e?.message || String(e)
+      setAiAnalysisError(msg)
+      logger.error('app', 'runAiAnalysis failed', { error: msg })
+    } finally {
+      setAiAnalysisLoading(false)
+    }
+  }, [roomId, tanyaData, alenaData])
+
   useEffect(() => {
     if (currentScreen === 'comparison' && roomId) {
       logger.log('app', 'screen', { screen: 'comparison', roomId })
       loadBothForComparison()
     }
   }, [currentScreen, roomId, loadBothForComparison])
+
+  useEffect(() => {
+    if (currentScreen !== 'comparison' || !roomId || aiAnalysisLoading) return
+    const hasData = Object.keys(tanyaData).length > 0 || Object.keys(alenaData).length > 0
+    if (!hasData || !isAiAnalysisAvailable()) return
+    if (!aiAnalysis && !aiAnalysisError) {
+      runAiAnalysisForRoom()
+    }
+  }, [currentScreen, roomId, tanyaData, alenaData, aiAnalysis, aiAnalysisLoading, aiAnalysisError, runAiAnalysisForRoom])
 
   const goToComparison = async () => {
     const partnerFinished = currentUser === 'tanya' ? partnerStatus.alenaFinished : partnerStatus.tanyaFinished
@@ -379,6 +427,7 @@ export default function FoundersVisionTool() {
       tanyaData,
       alenaData,
       details,
+      aiAnalysis: aiAnalysis || undefined,
     }
     const content = asMd ? buildReportMd(report) : JSON.stringify(report, null, 2)
     const blob = new Blob([content], { type: asMd ? 'text/markdown' : 'application/json' })
@@ -584,6 +633,11 @@ export default function FoundersVisionTool() {
           alenaData={alenaData}
           roomId={roomId}
           currentUser={currentUser}
+          aiAnalysis={aiAnalysis}
+          aiAnalysisLoading={aiAnalysisLoading}
+          aiAnalysisError={aiAnalysisError}
+          aiAnalysisOutdated={isAiAnalysisOutdated}
+          onRefreshAiAnalysis={runAiAnalysisForRoom}
           onBackToFilling={() => {
             storage.setScreenInUrl('')
             setCurrentScreen('filling')
@@ -1018,7 +1072,25 @@ const MATCH_LABEL = { full: '✓ Полное', partial: '~ Частичное',
 
 const DECISION_ICON_COLOR = { GO: 'text-lime-400', 'GO с оговорками': 'text-yellow-400', PIVOT: 'text-orange-400', 'NO-GO': 'text-red-400' }
 
-function ComparisonScreen({ details, score, max, pct, decision, onBackToFilling, onDownloadReport, roomId, currentUser, onCopyComparisonLink }) {
+const AI_VERDICT_LABEL = { GO: 'GO', CONDITIONAL_GO: 'GO с оговорками', PIVOT: 'PIVOT', NO_GO: 'NO-GO' }
+
+function ComparisonScreen({
+  details,
+  score,
+  max,
+  pct,
+  decision,
+  onBackToFilling,
+  onDownloadReport,
+  roomId,
+  currentUser,
+  onCopyComparisonLink,
+  aiAnalysis,
+  aiAnalysisLoading,
+  aiAnalysisError,
+  aiAnalysisOutdated,
+  onRefreshAiAnalysis,
+}) {
   const Icon = DECISION_ICONS[decision.type] || AlertCircle
   const borderClass = DECISION_BORDER[decision.type] || 'border-neutral-600'
   const bgClass = DECISION_BG[decision.type] || 'bg-neutral-900'
@@ -1064,6 +1136,104 @@ function ComparisonScreen({ details, score, max, pct, decision, onBackToFilling,
             className="h-full bg-lime-400 transition-all duration-500"
             style={{ width: `${Math.min(100, Number(pct))}%` }}
           />
+        </div>
+      </div>
+
+      {/* AI-анализ совместимости */}
+      <div className="mb-8 rounded-lg border border-neutral-700 bg-neutral-950 overflow-hidden">
+        <div className="px-4 py-3 border-b border-neutral-800 flex flex-wrap items-center gap-2">
+          <span className="text-white font-semibold">AI-анализ совместимости</span>
+          {aiAnalysisOutdated && (
+            <span
+              className="text-amber-400 text-xs px-2 py-0.5 rounded border border-amber-500/50 bg-amber-950/30"
+              title="Ответы изменились после последнего анализа"
+            >
+              Устарело
+            </span>
+          )}
+          {aiAnalysisOutdated && onRefreshAiAnalysis && (
+            <button
+              type="button"
+              onClick={onRefreshAiAnalysis}
+              className="text-sm border border-neutral-600 text-neutral-400 hover:text-white hover:border-neutral-500 px-3 py-1 rounded"
+            >
+              Обновить анализ
+            </button>
+          )}
+        </div>
+        <div className="p-4">
+          {aiAnalysisLoading && (
+            <p className="text-neutral-400 text-sm flex items-center gap-2">
+              <span className="inline-block w-4 h-4 border-2 border-neutral-600 border-t-lime-400 rounded-full animate-spin" />
+              Анализируем…
+            </p>
+          )}
+          {aiAnalysisError && !aiAnalysisLoading && (
+            <div className="text-red-400 text-sm mb-2">
+              {aiAnalysisError}
+              {onRefreshAiAnalysis && (
+                <button
+                  type="button"
+                  onClick={onRefreshAiAnalysis}
+                  className="ml-2 underline hover:no-underline"
+                >
+                  Повторить
+                </button>
+              )}
+            </div>
+          )}
+          {aiAnalysis && !aiAnalysisLoading && (
+            <div className="space-y-4 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-white font-medium">Общая совместимость: {aiAnalysis.ai_compatibility_score}/100</span>
+                <span className="text-neutral-500">Вердикт: {AI_VERDICT_LABEL[aiAnalysis.ai_verdict] || aiAnalysis.ai_verdict}</span>
+              </div>
+              {aiAnalysis.strengths && aiAnalysis.strengths.length > 0 && (
+                <div>
+                  <h4 className="text-lime-400 font-medium mb-2">Сильные стороны</h4>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-300">
+                    {aiAnalysis.strengths.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiAnalysis.critical_conflicts && aiAnalysis.critical_conflicts.length > 0 && (
+                <div>
+                  <h4 className="text-amber-400 font-medium mb-2">Критические расхождения</h4>
+                  <ul className="space-y-2">
+                    {aiAnalysis.critical_conflicts.map((c, i) => (
+                      <li key={i} className="border-l-2 border-amber-500/50 pl-3 py-1">
+                        <span className="text-neutral-200">{c.title}</span>
+                        {c.recommendation && (
+                          <p className="text-neutral-500 text-xs mt-1">Рекомендация: {c.recommendation}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiAnalysis.discussion_questions && aiAnalysis.discussion_questions.length > 0 && (
+                <div>
+                  <h4 className="text-cyan-400 font-medium mb-2">Вопросы для обсуждения</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-neutral-300">
+                    {aiAnalysis.discussion_questions.map((q, i) => (
+                      <li key={i}>{q}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+              {aiAnalysis.summary && (
+                <div>
+                  <h4 className="text-neutral-400 font-medium mb-2">Резюме</h4>
+                  <p className="text-neutral-300 whitespace-pre-wrap">{aiAnalysis.summary}</p>
+                </div>
+              )}
+            </div>
+          )}
+          {!aiAnalysis && !aiAnalysisLoading && !aiAnalysisError && !isAiAnalysisAvailable() && (
+            <p className="text-neutral-500 text-sm">AI-анализ недоступен: не задан VITE_OPENROUTER_API_KEY.</p>
+          )}
         </div>
       </div>
 

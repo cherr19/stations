@@ -44,9 +44,11 @@ export function buildMyAnswersMd(data, userName) {
   return lines.join('\n')
 }
 
+const AI_VERDICT_LABEL = { GO: 'GO', CONDITIONAL_GO: 'GO с оговорками', PIVOT: 'PIVOT', NO_GO: 'NO-GO' }
+
 /** Markdown для полного отчёта сравнения */
 export function buildReportMd(report) {
-  const { date, roomId, score, decision, tanyaData, alenaData, details } = report
+  const { date, roomId, score, decision, tanyaData, alenaData, details, aiAnalysis } = report
   const lines = [
     `# Отчёт сравнения видения основателей`,
     `Дата: ${date}`,
@@ -55,11 +57,45 @@ export function buildReportMd(report) {
     `## Результат`,
     `**${decision}** — совместимость ${report.pct}% (${score.total} / ${score.max} баллов)`,
     '',
-    '## Таблица сравнения',
-    '',
-    '| Параметр | Таня | Алена | Совпадение |',
-    '|----------|------|-------|------------|',
   ]
+  if (aiAnalysis) {
+    lines.push('## AI-анализ совместимости')
+    lines.push('')
+    lines.push(`- Совместимость (AI): ${aiAnalysis.ai_compatibility_score}/100`)
+    lines.push(`- Вердикт (AI): ${AI_VERDICT_LABEL[aiAnalysis.ai_verdict] || aiAnalysis.ai_verdict}`)
+    lines.push('')
+    if (aiAnalysis.strengths && aiAnalysis.strengths.length > 0) {
+      lines.push('### Сильные стороны')
+      lines.push('')
+      aiAnalysis.strengths.forEach((s) => lines.push(`- ${s}`))
+      lines.push('')
+    }
+    if (aiAnalysis.critical_conflicts && aiAnalysis.critical_conflicts.length > 0) {
+      lines.push('### Критические расхождения')
+      lines.push('')
+      aiAnalysis.critical_conflicts.forEach((c) => {
+        lines.push(`- **${c.title}**`)
+        if (c.recommendation) lines.push(`  Рекомендация: ${c.recommendation}`)
+      })
+      lines.push('')
+    }
+    if (aiAnalysis.discussion_questions && aiAnalysis.discussion_questions.length > 0) {
+      lines.push('### Вопросы для обсуждения')
+      lines.push('')
+      aiAnalysis.discussion_questions.forEach((q, i) => lines.push(`${i + 1}. ${q}`))
+      lines.push('')
+    }
+    if (aiAnalysis.summary) {
+      lines.push('### Резюме')
+      lines.push('')
+      lines.push(aiAnalysis.summary)
+      lines.push('')
+    }
+  }
+  lines.push('## Таблица сравнения')
+  lines.push('')
+  lines.push('| Параметр | Таня | Алена | Совпадение |')
+  lines.push('|----------|------|-------|------------|')
   const matchLabel = { full: '✓ Полное', partial: '~ Частичное', none: '✗ Различия', empty: '—' }
   for (const d of details) {
     const t = formatCellValue(d.tVal).replace(/\|/g, ' ').replace(/\n/g, ' ')

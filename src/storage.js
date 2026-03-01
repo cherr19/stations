@@ -228,27 +228,33 @@ export async function saveData(roomId, user, data) {
   }
 }
 
-/** Загрузить данные обоих пользователей (для экрана сравнения) */
+/** Загрузить данные обоих пользователей и AI-анализ (для экрана сравнения) */
 export async function loadRoom(roomId) {
   if (!roomId) {
     logger.log('storage', 'loadRoom skip', { reason: 'no roomId' })
-    return { tanyaData: {}, alenaData: {} }
+    return { tanyaData: {}, alenaData: {}, aiAnalysis: null, aiAnalysisAt: null, roomUpdatedAt: null }
   }
   const sb = await getSupabaseAsync()
   if (sb) {
     try {
       const { data, error } = await sb
         .from(TABLE_NAME)
-        .select('tanya_data, alena_data')
+        .select('tanya_data, alena_data, ai_analysis, ai_analysis_at, updated_at')
         .eq('room_id', roomId)
         .maybeSingle()
       if (error) throw error
-      const out = { tanyaData: data?.tanya_data ?? {}, alenaData: data?.alena_data ?? {} }
+      const out = {
+        tanyaData: data?.tanya_data ?? {},
+        alenaData: data?.alena_data ?? {},
+        aiAnalysis: data?.ai_analysis ?? null,
+        aiAnalysisAt: data?.ai_analysis_at ?? null,
+        roomUpdatedAt: data?.updated_at ?? null,
+      }
       logger.log('storage', 'loadRoom OK', { roomId, backend: 'supabase', keysT: Object.keys(out.tanyaData).length, keysA: Object.keys(out.alenaData).length })
       return out
     } catch (e) {
       logger.error('storage', 'Supabase loadRoom failed', { roomId, error: String(e) })
-      return { tanyaData: {}, alenaData: {} }
+      return { tanyaData: {}, alenaData: {}, aiAnalysis: null, aiAnalysisAt: null, roomUpdatedAt: null }
     }
   }
   const db = await initFirebase()
@@ -261,12 +267,15 @@ export async function loadRoom(roomId) {
       const out = {
         tanyaData: d.tanyaData ? JSON.parse(d.tanyaData) : {},
         alenaData: d.alenaData ? JSON.parse(d.alenaData) : {},
+        aiAnalysis: null,
+        aiAnalysisAt: null,
+        roomUpdatedAt: d.updatedAt ?? null,
       }
       logger.log('storage', 'loadRoom OK', { roomId, backend: 'firebase' })
       return out
     } catch (e) {
       logger.error('storage', 'Firebase loadRoom failed', { roomId, error: String(e) })
-      return { tanyaData: {}, alenaData: {} }
+      return { tanyaData: {}, alenaData: {}, aiAnalysis: null, aiAnalysisAt: null, roomUpdatedAt: null }
     }
   }
   const tanyaRaw = localStorage.getItem(`${STORAGE_PREFIX}${roomId}_tanya`)
@@ -275,6 +284,43 @@ export async function loadRoom(roomId) {
   return {
     tanyaData: tanyaRaw ? JSON.parse(tanyaRaw) : {},
     alenaData: alenaRaw ? JSON.parse(alenaRaw) : {},
+    aiAnalysis: null,
+    aiAnalysisAt: null,
+    roomUpdatedAt: null,
+  }
+}
+
+/** Сохранить результат AI-анализа в комнату (Supabase). */
+export async function saveAiAnalysis(roomId, payload) {
+  if (!roomId || !payload) return
+  const sb = await getSupabaseAsync()
+  if (!sb) return
+  try {
+    const { data: row, error: fetchError } = await sb
+      .from(TABLE_NAME)
+      .select('tanya_data, alena_data, tanya_chat, alena_chat')
+      .eq('room_id', roomId)
+      .maybeSingle()
+    const existing = row || {}
+    const now = new Date().toISOString()
+    const { error } = await sb.from(TABLE_NAME).upsert(
+      {
+        room_id: roomId,
+        tanya_data: existing.tanya_data ?? {},
+        alena_data: existing.alena_data ?? {},
+        tanya_chat: existing.tanya_chat ?? [],
+        alena_chat: existing.alena_chat ?? [],
+        ai_analysis: payload,
+        ai_analysis_at: now,
+        updated_at: existing.updated_at ?? now,
+      },
+      { onConflict: 'room_id' }
+    )
+    if (error) throw error
+    logger.log('storage', 'saveAiAnalysis OK', { roomId })
+  } catch (e) {
+    logger.error('storage', 'saveAiAnalysis failed', { roomId, error: String(e) })
+    throw e
   }
 }
 

@@ -42,6 +42,8 @@ CREATE TABLE vision_rooms (
   alena_data JSONB,
   tanya_chat JSONB DEFAULT '[]',
   alena_chat JSONB DEFAULT '[]',
+  ai_analysis JSONB,
+  ai_analysis_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 );
 ```
@@ -49,12 +51,14 @@ CREATE TABLE vision_rooms (
 1. Нажми **Run** (Выполнить) внизу справа (или Ctrl+Enter).
 2. Должно появиться сообщение вроде «Success. No rows returned». Таблица `vision_rooms` создана.
 
-**Если таблица уже была создана раньше (без колонок чата):** выполни в SQL Editor отдельно:
+**Если таблица уже была создана раньше (без колонок чата или AI-анализа):** выполни в SQL Editor отдельно:
 
 ```sql
 ALTER TABLE vision_rooms
   ADD COLUMN IF NOT EXISTS tanya_chat JSONB DEFAULT '[]',
-  ADD COLUMN IF NOT EXISTS alena_chat JSONB DEFAULT '[]';
+  ADD COLUMN IF NOT EXISTS alena_chat JSONB DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS ai_analysis JSONB,
+  ADD COLUMN IF NOT EXISTS ai_analysis_at TIMESTAMPTZ;
 ```
 
 **Если хочешь создать таблицу через интерфейс (Table Editor):**
