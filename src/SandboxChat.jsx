@@ -4,33 +4,46 @@ import * as logger from './logger'
 
 const PLACEHOLDER = 'Напишите, что думаете по поводу этого вопроса или части опросника…'
 
-export default function SandboxChat({ partTitle, partNumber, currentQuestionLabel }) {
-  const [messages, setMessages] = useState([])
+/** Простой рендер markdown: **жирный** и переносы строк */
+function renderMarkdown(text) {
+  if (!text || typeof text !== 'string') return text
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
+export default function SandboxChat({ partTitle, partNumber, currentQuestionLabel, messages = [], onMessagesChange }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const bottomRef = useRef(null)
+  const scrollContainerRef = useRef(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    const el = scrollContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, loading])
 
   const available = isChatAvailable()
+  const setMessages = onMessagesChange || (() => {})
 
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading || !available) return
     const userMessage = { role: 'user', content: text }
-    setMessages((prev) => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
     setInput('')
     setLoading(true)
     setError(null)
     logger.log('sandbox', 'send', { part: partNumber, question: currentQuestionLabel?.slice(0, 30) })
     try {
-      const history = [...messages, userMessage]
       const context = { partNumber, partTitle, currentQuestionLabel }
-      const { content } = await sendMessage(history, context)
-      setMessages((prev) => [...prev, { role: 'assistant', content }])
+      const { content } = await sendMessage(newMessages, context)
+      setMessages([...newMessages, { role: 'assistant', content }])
     } catch (e) {
       const errMsg = e?.message || String(e)
       setError(errMsg)
@@ -42,7 +55,7 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
 
   if (!available) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 bg-neutral-950 border-l border-neutral-800 text-center">
+      <div className="h-full flex flex-col items-center justify-center p-4 bg-neutral-950 text-center">
         <p className="text-neutral-500 text-sm">
           Песочница с Claude недоступна: не задан <code className="text-neutral-400">VITE_OPENROUTER_API_KEY</code>.
         </p>
@@ -59,7 +72,11 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
           {partTitle || 'Часть опросника'} {currentQuestionLabel ? `· ${currentQuestionLabel.slice(0, 40)}…` : ''}
         </p>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 min-h-0"
+        style={{ overflowAnchor: 'none' }}
+      >
         {messages.length === 0 && (
           <p className="text-neutral-500 text-sm">{PLACEHOLDER}</p>
         )}
@@ -73,7 +90,9 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
             }`}
           >
             <span className="font-medium text-neutral-500 text-xs">{m.role === 'user' ? 'Вы' : 'Claude'}</span>
-            <div className="mt-1 whitespace-pre-wrap break-words">{m.content}</div>
+            <div className="mt-1 whitespace-pre-wrap break-words">
+              {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
+            </div>
           </div>
         ))}
         {loading && (
@@ -86,7 +105,6 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
             {error}
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
       <div className="p-3 border-t border-neutral-800 shrink-0">
         <textarea

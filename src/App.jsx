@@ -153,6 +153,7 @@ export default function FoundersVisionTool() {
   })
   const [showComparisonConfirm, setShowComparisonConfirm] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
+  const [sandboxMessages, setSandboxMessages] = useState([])
   const scrollLeftRef = useRef(null)
 
   const loadRoomId = useCallback(() => {
@@ -225,6 +226,11 @@ export default function FoundersVisionTool() {
       scrollLeftRef.current.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [currentScreen, currentPart])
+
+  useEffect(() => {
+    if (currentScreen !== 'filling' || !roomId || !currentUser) return
+    storage.loadChat(roomId, currentUser).then(setSandboxMessages)
+  }, [currentScreen, roomId, currentUser])
 
   const saveData = useCallback(
     async (founder, data) => {
@@ -378,7 +384,8 @@ export default function FoundersVisionTool() {
       <button
         type="button"
         onClick={() => setShowLogs((v) => !v)}
-        className="fixed bottom-4 left-4 z-40 px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-neutral-400 hover:text-white text-xs flex items-center gap-2"
+        className="fixed left-4 z-40 px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-neutral-400 hover:text-white text-xs flex items-center gap-2"
+        style={{ bottom: '5.5rem' }}
         title="Показать логи"
       >
         <Bug className="w-3.5 h-3.5" />
@@ -450,10 +457,15 @@ export default function FoundersVisionTool() {
           </div>
           <aside className="w-[400px] shrink-0 hidden lg:flex flex-col items-start justify-start pt-6 pr-4 pb-4">
             <div className="w-full rounded-2xl border-2 border-lime-400/60 bg-neutral-950 overflow-hidden shadow-[0_0_0_1px_rgba(34,197,94,0.2)]" style={{ height: '66.67vh', maxHeight: '66.67vh' }}>
-                <SandboxChat
+              <SandboxChat
                 partTitle={sandboxPartTitle}
                 partNumber={sandboxPartNumber}
                 currentQuestionLabel={sandboxQuestionLabel}
+                messages={sandboxMessages}
+                onMessagesChange={(msgs) => {
+                  setSandboxMessages(msgs)
+                  if (roomId && currentUser) storage.saveChat(roomId, currentUser, msgs)
+                }}
               />
             </div>
           </aside>

@@ -258,6 +258,68 @@ export async function loadMyData(roomId, user) {
   return user === 'tanya' ? tanyaData : alenaData
 }
 
+/** Загрузить переписку с Claude для комнаты и участника */
+export async function loadChat(roomId, user) {
+  if (!roomId || !user) return []
+  const sb = await getSupabaseAsync()
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from(TABLE_NAME)
+        .select('tanya_chat, alena_chat')
+        .eq('room_id', roomId)
+        .maybeSingle()
+      if (error) throw error
+      const chat = user === 'tanya' ? (data?.tanya_chat ?? []) : (data?.alena_chat ?? [])
+      return Array.isArray(chat) ? chat : []
+    } catch (e) {
+      logger.warn('storage', 'loadChat failed (columns may be missing)', { roomId, error: String(e) })
+      return []
+    }
+  }
+  try {
+    const raw = localStorage.getItem(`${STORAGE_PREFIX}${roomId}_${user}_chat`)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+/** Сохранить переписку с Claude для комнаты и участника */
+export async function saveChat(roomId, user, messages) {
+  if (!roomId || !user || !Array.isArray(messages)) return
+  const sb = await getSupabaseAsync()
+  if (sb) {
+    try {
+      const { data: row, error: fetchError } = await sb
+        .from(TABLE_NAME)
+        .select('tanya_data, alena_data, tanya_chat, alena_chat')
+        .eq('room_id', roomId)
+        .maybeSingle()
+      const existing = row || {}
+      const payload = {
+        room_id: roomId,
+        tanya_data: existing.tanya_data ?? {},
+        alena_data: existing.alena_data ?? {},
+        tanya_chat: user === 'tanya' ? messages : (existing.tanya_chat ?? []),
+        alena_chat: user === 'alena' ? messages : (existing.alena_chat ?? []),
+        updated_at: new Date().toISOString(),
+      }
+      const { error } = await sb.from(TABLE_NAME).upsert(payload, { onConflict: 'room_id' })
+      if (error) throw error
+      logger.log('storage', 'saveChat OK', { roomId, user, count: messages.length })
+    } catch (e) {
+      logger.warn('storage', 'saveChat failed', { roomId, user, error: String(e) })
+    }
+    return
+  }
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${roomId}_${user}_chat`, JSON.stringify(messages))
+  } catch (e) {
+    logger.warn('storage', 'saveChat localStorage failed', { roomId, user })
+  }
+}
+
 /** Статус: кто начал и кто закончил заполнение (без раскрытия содержимого) */
 export async function getRoomStatus(roomId) {
   const { tanyaData, alenaData } = await loadRoom(roomId)

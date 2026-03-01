@@ -40,12 +40,22 @@ CREATE TABLE vision_rooms (
   room_id TEXT PRIMARY KEY,
   tanya_data JSONB,
   alena_data JSONB,
+  tanya_chat JSONB DEFAULT '[]',
+  alena_chat JSONB DEFAULT '[]',
   updated_at TIMESTAMPTZ
 );
 ```
 
 1. Нажми **Run** (Выполнить) внизу справа (или Ctrl+Enter).
 2. Должно появиться сообщение вроде «Success. No rows returned». Таблица `vision_rooms` создана.
+
+**Если таблица уже была создана раньше (без колонок чата):** выполни в SQL Editor отдельно:
+
+```sql
+ALTER TABLE vision_rooms
+  ADD COLUMN IF NOT EXISTS tanya_chat JSONB DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS alena_chat JSONB DEFAULT '[]';
+```
 
 **Если хочешь создать таблицу через интерфейс (Table Editor):**
 
