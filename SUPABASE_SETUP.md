@@ -235,9 +235,10 @@ GitHub не принимает обычный пароль при `git push`. Н
 4. В списке репозиториев найди нужный репозиторий (например **stations** или **founders-vision-tool** — как ты назвал при создании) и нажми **Import** рядом с ним.
 5. На странице настроек проекта:
    - **Root Directory** — оставь пустым (репозиторий у тебя уже только с этим приложением). Если по какой-то причине импортировала весь репо `cursor`, укажи **Root Directory**: `founders-vision-tool`.
-   - Раскрой **Environment Variables**. Добавь две переменные (те же, что в `.env.local`):
+   - Раскрой **Environment Variables**. Добавь переменные (те же, что в `.env.local`):
      - **Name:** `VITE_SUPABASE_URL` → **Value:** твой URL Supabase (например `https://xxxxx.supabase.co`).
      - **Name:** `VITE_SUPABASE_ANON_KEY` → **Value:** твой Publishable-ключ из Supabase.
+     - **(Опционально, для песочницы с Claude)** **Name:** `VITE_OPENROUTER_API_KEY` → **Value:** твой ключ с [openrouter.ai](https://openrouter.ai). Без него приложение работает, но справа не будет панели «обсуждение с Claude».
 6. Нажми **Deploy**. Дождись окончания сборки (обычно 1–2 минуты).
 7. Когда статус станет **Ready**, на странице проекта будет ссылка вида `https://founders-vision-tool-xxx.vercel.app` — **это ваш общий адрес**. Ты и Алена открываете приложение только по этой ссылке (с разных устройств).
 

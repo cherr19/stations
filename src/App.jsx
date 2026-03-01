@@ -448,12 +448,14 @@ export default function FoundersVisionTool() {
               />
             )}
           </div>
-          <aside className="w-[400px] shrink-0 hidden lg:flex flex-col border-l border-neutral-800 min-h-[60vh]">
-            <SandboxChat
-              partTitle={sandboxPartTitle}
-              partNumber={sandboxPartNumber}
-              currentQuestionLabel={sandboxQuestionLabel}
-            />
+          <aside className="w-[400px] shrink-0 hidden lg:flex flex-col items-start justify-start pt-6 pr-4 pb-4">
+            <div className="w-full rounded-2xl border-2 border-lime-400/60 bg-neutral-950 overflow-hidden shadow-[0_0_0_1px_rgba(34,197,94,0.2)]" style={{ height: '66.67vh', maxHeight: '66.67vh' }}>
+                <SandboxChat
+                partTitle={sandboxPartTitle}
+                partNumber={sandboxPartNumber}
+                currentQuestionLabel={sandboxQuestionLabel}
+              />
+            </div>
           </aside>
         </div>
       ) : (

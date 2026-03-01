@@ -52,7 +52,7 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
   }
 
   return (
-    <div className="h-full flex flex-col bg-neutral-950 border-l border-neutral-800">
+    <div className="h-full flex flex-col bg-neutral-950">
       <div className="px-3 py-2 border-b border-neutral-800 shrink-0">
         <h3 className="text-sm font-semibold text-white">Песочница: обсуждение с Claude</h3>
         <p className="text-xs text-neutral-500 mt-0.5">
