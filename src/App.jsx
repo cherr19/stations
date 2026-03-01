@@ -1165,7 +1165,7 @@ function ComparisonScreen({
           {aiAnalysisLoading && (
             <p className="text-neutral-400 text-sm flex items-center gap-2">
               <span className="inline-block w-4 h-4 border-2 border-neutral-600 border-t-lime-400 rounded-full animate-spin" />
-              Анализируем…
+              Анализируем… (до 1 мин)
             </p>
           )}
           {aiAnalysisError && !aiAnalysisLoading && (

@@ -77,8 +77,12 @@ ${alenaSummary}
 Критерии: (1) семантическое совпадение текстов, (2) скрытые конфликты по сути, (3) operational compatibility (роли, делегирование, готовность к нагрузке). Пиши на русском.
 `.trim()
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 90000)
+
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
@@ -97,6 +101,7 @@ ${alenaSummary}
     }),
   })
 
+  clearTimeout(timeoutId)
   if (!res.ok) {
     const errText = await res.text()
     throw new Error(`OpenRouter ${res.status}: ${errText}`)

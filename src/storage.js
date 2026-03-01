@@ -290,32 +290,17 @@ export async function loadRoom(roomId) {
   }
 }
 
-/** Сохранить результат AI-анализа в комнату (Supabase). */
+/** Сохранить результат AI-анализа в комнату (Supabase). Только UPDATE полей ai_analysis, ai_analysis_at — не трогаем чаты и ответы, не зависим от наличия колонок чата. */
 export async function saveAiAnalysis(roomId, payload) {
   if (!roomId || !payload) return
   const sb = await getSupabaseAsync()
   if (!sb) return
+  const now = new Date().toISOString()
   try {
-    const { data: row, error: fetchError } = await sb
+    const { error } = await sb
       .from(TABLE_NAME)
-      .select('tanya_data, alena_data, tanya_chat, alena_chat')
+      .update({ ai_analysis: payload, ai_analysis_at: now })
       .eq('room_id', roomId)
-      .maybeSingle()
-    const existing = row || {}
-    const now = new Date().toISOString()
-    const { error } = await sb.from(TABLE_NAME).upsert(
-      {
-        room_id: roomId,
-        tanya_data: existing.tanya_data ?? {},
-        alena_data: existing.alena_data ?? {},
-        tanya_chat: existing.tanya_chat ?? [],
-        alena_chat: existing.alena_chat ?? [],
-        ai_analysis: payload,
-        ai_analysis_at: now,
-        updated_at: existing.updated_at ?? now,
-      },
-      { onConflict: 'room_id' }
-    )
     if (error) throw error
     logger.log('storage', 'saveAiAnalysis OK', { roomId })
   } catch (e) {
