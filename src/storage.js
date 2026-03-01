@@ -323,14 +323,12 @@ export async function saveChat(roomId, user, messages) {
 /** Статус: кто начал и кто закончил заполнение (без раскрытия содержимого) */
 export async function getRoomStatus(roomId) {
   const { tanyaData, alenaData } = await loadRoom(roomId)
-  const status = {
+  return {
     tanyaStarted: hasAnyData(tanyaData),
     alenaStarted: hasAnyData(alenaData),
     tanyaFinished: hasFinishedAll(tanyaData || {}),
     alenaFinished: hasFinishedAll(alenaData || {}),
   }
-  logger.log('storage', 'getRoomStatus', { roomId, ...status })
-  return status
 }
 
 export function isCloudStorageAvailable() {

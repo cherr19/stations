@@ -208,7 +208,7 @@ export default function FoundersVisionTool() {
   }, [roomId])
 
   useEffect(() => {
-    if (currentScreen !== 'filling' || !roomId) return
+    if ((currentScreen !== 'filling' && currentScreen !== 'select') || !roomId) return
     refreshPartnerStatus()
     const t = setInterval(refreshPartnerStatus, 3000)
     const onVisible = () => {
@@ -447,7 +447,11 @@ export default function FoundersVisionTool() {
                 expandedSections={expandedSections}
                 toggleSection={toggleSection}
                 partnerStatus={partnerStatus}
-                onBack={() => setCurrentScreen('intro')}
+                onBackToPrevPart={() => {
+                  if (currentPart > 1) setCurrentPart((p) => p - 1)
+                  else setCurrentScreen('intro')
+                }}
+                onSelectRoom={() => setCurrentScreen('select')}
                 onGoToComparison={goToComparison}
                 onDownloadMyResults={(format) => downloadMyResults(currentUser, format !== 'json')}
                 onUploadMyResults={(file) => uploadMyResults(currentUser, file)}
@@ -475,6 +479,7 @@ export default function FoundersVisionTool() {
       {currentScreen === 'select' && (
         <SelectUserScreen
           roomId={roomId}
+          partnerStatus={partnerStatus}
           onSelect={(user) => {
             setCurrentUser(user)
             setCurrentScreen('intro')
@@ -541,22 +546,32 @@ export default function FoundersVisionTool() {
   )
 }
 
-function SelectUserScreen({ roomId, onSelect, onCopyLinkForUser }) {
+function statusLabel(started, finished) {
+  if (!started) return 'не начала'
+  return finished ? 'закончила' : 'заполняет'
+}
+
+function SelectUserScreen({ roomId, partnerStatus = {}, onSelect, onCopyLinkForUser }) {
   const handleCopy = (user) => {
     const url = onCopyLinkForUser?.(user)
     if (url && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url)
     }
   }
+  const shortRoomId = roomId ? `${roomId.slice(0, 8)}${roomId.length > 8 ? '…' : ''}` : '—'
+  const tanyaStatus = statusLabel(partnerStatus.tanyaStarted, partnerStatus.tanyaFinished)
+  const alenaStatus = statusLabel(partnerStatus.alenaStarted, partnerStatus.alenaFinished)
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
         Аудит видения основателей
       </h1>
-      <p className="text-neutral-500 mb-8">
-        Комната: <code className="text-neutral-400 bg-neutral-900 px-2 py-0.5 rounded">{roomId || '—'}</code>
-        {' '}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <span className="text-neutral-500">Комната:</span>
+        <code className="text-lime-400/90 bg-neutral-900 px-2 py-1 rounded font-mono text-sm" title={roomId}>
+          {shortRoomId}
+        </code>
         <button
           type="button"
           onClick={() => {
@@ -568,7 +583,17 @@ function SelectUserScreen({ roomId, onSelect, onCopyLinkForUser }) {
         >
           Создать новую
         </button>
-      </p>
+      </div>
+      <div className="border border-neutral-700 rounded-lg p-4 mb-8 bg-neutral-950">
+        <p className="text-neutral-400 text-sm mb-3">Кто заполняет в этой комнате — нажми на себя, чтобы войти в свою анкету:</p>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <span className="text-purple-400 font-medium">Таня</span>
+          <span className="text-neutral-500">{tanyaStatus}</span>
+          <span className="text-neutral-600">·</span>
+          <span className="text-cyan-400 font-medium">Алена</span>
+          <span className="text-neutral-500">{alenaStatus}</span>
+        </div>
+      </div>
       <div className="border-l-4 border-lime-400 bg-neutral-950 pl-6 py-4 mb-10">
         <p className="text-neutral-300 text-sm">
           Каждый из вас независимо заполняет опросник. Ответы сохраняются в облаке и не видны друг другу до момента сравнения. Затем вы вместе смотрите результат и рекомендацию (GO / PIVOT / NO-GO).
@@ -578,22 +603,24 @@ function SelectUserScreen({ roomId, onSelect, onCopyLinkForUser }) {
         <button
           type="button"
           onClick={() => onSelect('tanya')}
-          className="border-2 border-neutral-800 hover:border-purple-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-4 transition-colors"
+          className="border-2 border-neutral-800 hover:border-purple-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors"
         >
           <span className="w-20 h-20 rounded-full bg-purple-500/20 border border-purple-400 flex items-center justify-center text-3xl font-bold text-purple-400">
             T
           </span>
           <span className="text-xl font-semibold text-white">Таня</span>
+          <span className="text-xs text-neutral-500">{tanyaStatus}</span>
         </button>
         <button
           type="button"
           onClick={() => onSelect('alena')}
-          className="border-2 border-neutral-800 hover:border-cyan-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-4 transition-colors"
+          className="border-2 border-neutral-800 hover:border-cyan-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors"
         >
           <span className="w-20 h-20 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-3xl font-bold text-cyan-400">
             A
           </span>
           <span className="text-xl font-semibold text-white">Алена</span>
+          <span className="text-xs text-neutral-500">{alenaStatus}</span>
         </button>
       </div>
       {roomId && (
@@ -673,7 +700,8 @@ function FillingScreen({
   expandedSections,
   toggleSection,
   partnerStatus,
-  onBack,
+  onBackToPrevPart,
+  onSelectRoom,
   onGoToComparison,
   onDownloadMyResults,
   onUploadMyResults,
@@ -798,14 +826,23 @@ function FillingScreen({
         </Section>
       ))}
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-neutral-800 bg-black/95 py-4 px-6 flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="border border-neutral-800 bg-neutral-950 hover:border-neutral-700 text-neutral-400 hover:text-white px-6 py-2 transition-colors"
-        >
-          Назад
-        </button>
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-neutral-800 bg-black/95 py-4 px-6 flex justify-between items-center flex-wrap gap-2">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onSelectRoom}
+            className="border border-neutral-600 text-neutral-500 hover:text-white hover:border-neutral-500 px-4 py-2 text-sm transition-colors"
+          >
+            Выбрать комнату
+          </button>
+          <button
+            type="button"
+            onClick={onBackToPrevPart}
+            className="border border-neutral-800 bg-neutral-950 hover:border-neutral-700 text-neutral-400 hover:text-white px-6 py-2 transition-colors"
+          >
+            Назад
+          </button>
+        </div>
         {isLastPart ? (
           <button
             type="button"
