@@ -155,6 +155,7 @@ export default function FoundersVisionTool() {
   const [showLogs, setShowLogs] = useState(false)
   const [sandboxMessages, setSandboxMessages] = useState([])
   const [lockedUserFromUrl, setLockedUserFromUrl] = useState(null)
+  const [roomsWithData, setRoomsWithData] = useState([])
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === 'undefined') return false
     storage.applyAdminFromUrl()
@@ -238,6 +239,11 @@ export default function FoundersVisionTool() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [currentScreen, roomId, refreshPartnerStatus])
+
+  useEffect(() => {
+    if (!isAdmin || currentScreen !== 'select') return
+    storage.getRoomsWithData().then(setRoomsWithData)
+  }, [isAdmin, currentScreen])
 
   useEffect(() => {
     if (currentScreen === 'filling' && scrollLeftRef.current) {
@@ -517,6 +523,11 @@ export default function FoundersVisionTool() {
           partnerStatus={partnerStatus}
           isAdmin={isAdmin}
           lockedUser={lockedUserFromUrl}
+          roomsWithData={roomsWithData}
+          onSelectRoom={(id) => {
+            setRoomId(id)
+            storage.setRoomIdInUrl(id)
+          }}
           onSelect={(user) => {
             setCurrentUser(user)
             setCurrentScreen('intro')
@@ -619,7 +630,7 @@ function NoRoomScreen({ onPasteRoomId }) {
   )
 }
 
-function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUser, onSelect, onCopyLinkForUser }) {
+function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUser, roomsWithData = [], onSelectRoom, onSelect, onCopyLinkForUser }) {
   const handleCopy = (user) => {
     const url = onCopyLinkForUser?.(user)
     if (url && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -660,6 +671,36 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
           </button>
         )}
       </div>
+      {admin && roomsWithData.length > 0 && (
+        <div className="border border-neutral-700 rounded-lg p-4 mb-6 bg-neutral-950">
+          <p className="text-neutral-400 text-sm font-medium mb-3">Комнаты, где есть данные (переход по клику):</p>
+          <ul className="space-y-2 max-h-48 overflow-y-auto">
+            {roomsWithData.map((r) => {
+              const short = `${r.roomId.slice(0, 8)}…`
+              const tLabel = statusLabel(r.tanyaStarted, r.tanyaFinished)
+              const aLabel = statusLabel(r.alenaStarted, r.alenaFinished)
+              const isCurrent = r.roomId === roomId
+              return (
+                <li key={r.roomId}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectRoom?.(r.roomId)}
+                    className={`w-full text-left px-3 py-2 rounded text-sm flex flex-wrap items-center gap-x-3 gap-y-1 transition-colors ${
+                      isCurrent ? 'bg-lime-500/20 border border-lime-500/50' : 'hover:bg-neutral-800 border border-transparent'
+                    }`}
+                    title={r.roomId}
+                  >
+                    <code className="font-mono text-lime-400/90">{short}</code>
+                    <span className="text-neutral-500">Таня: {tLabel}</span>
+                    <span className="text-neutral-500">Алена: {aLabel}</span>
+                    {isCurrent && <span className="text-lime-400 text-xs">текущая</span>}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
       <div className="border border-neutral-700 rounded-lg p-4 mb-8 bg-neutral-950">
         <p className="text-neutral-400 text-sm mb-3">Кто заполняет в этой комнате — нажми на себя, чтобы войти в свою анкету:</p>
         <div className="flex flex-wrap gap-4 text-sm">

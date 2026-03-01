@@ -357,6 +357,36 @@ export async function getRoomStatus(roomId) {
   }
 }
 
+/** Список всех комнат, где есть хотя бы какие-то данные (для админа). Только Supabase. */
+export async function getRoomsWithData() {
+  const sb = await getSupabaseAsync()
+  if (!sb) return []
+  try {
+    const { data: rows, error } = await sb
+      .from(TABLE_NAME)
+      .select('room_id, tanya_data, alena_data, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(100)
+    if (error) throw error
+    if (!rows || !rows.length) return []
+    const out = rows
+      .filter((r) => hasAnyData(r.tanya_data) || hasAnyData(r.alena_data))
+      .map((r) => ({
+        roomId: r.room_id,
+        tanyaStarted: hasAnyData(r.tanya_data),
+        tanyaFinished: hasFinishedAll(r.tanya_data || {}),
+        alenaStarted: hasAnyData(r.alena_data),
+        alenaFinished: hasFinishedAll(r.alena_data || {}),
+        updatedAt: r.updated_at || null,
+      }))
+    logger.log('storage', 'getRoomsWithData', { count: out.length })
+    return out
+  } catch (e) {
+    logger.warn('storage', 'getRoomsWithData failed', { error: String(e) })
+    return []
+  }
+}
+
 export function isCloudStorageAvailable() {
   return !!getSupabaseConfig() || !!getFirebaseConfig()
 }
