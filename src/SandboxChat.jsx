@@ -56,10 +56,10 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
   if (!available) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-4 bg-neutral-950 text-center">
-        <p className="text-neutral-500 text-sm">
-          Песочница с Claude недоступна: не задан <code className="text-neutral-400">VITE_OPENROUTER_API_KEY</code>.
+        <p className="text-white text-sm">
+          Песочница с Claude недоступна: не задан <code className="text-white font-mono">VITE_OPENROUTER_API_KEY</code>.
         </p>
-        <p className="text-neutral-600 text-xs mt-2">Добавьте ключ в .env.local и перезапустите приложение.</p>
+        <p className="text-white text-xs mt-2 opacity-90">Добавьте ключ в .env.local и перезапустите приложение.</p>
       </div>
     )
   }
@@ -68,7 +68,7 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
     <div className="h-full flex flex-col bg-neutral-950">
       <div className="px-3 py-2 border-b border-neutral-800 shrink-0">
         <h3 className="text-sm font-semibold text-white">Песочница: обсуждение с Claude</h3>
-        <p className="text-xs text-neutral-500 mt-0.5">
+        <p className="text-xs text-white mt-0.5 opacity-95">
           {partTitle || 'Часть опросника'} {currentQuestionLabel ? `· ${currentQuestionLabel.slice(0, 40)}…` : ''}
         </p>
       </div>
@@ -78,7 +78,7 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
         style={{ overflowAnchor: 'none' }}
       >
         {messages.length === 0 && (
-          <p className="text-neutral-500 text-sm">{PLACEHOLDER}</p>
+          <p className="text-white text-sm opacity-90">{PLACEHOLDER}</p>
         )}
         {messages.map((m, i) => (
           <div
@@ -89,14 +89,14 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
                 : 'bg-neutral-900 text-white mr-4'
             }`}
           >
-            <span className="font-medium text-neutral-400 text-xs">{m.role === 'user' ? 'Вы' : 'Claude'}</span>
+            <span className="font-medium text-white text-xs opacity-90">{m.role === 'user' ? 'Вы' : 'Claude'}</span>
             <div className="mt-1 whitespace-pre-wrap break-words text-white">
               {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="rounded-lg px-3 py-2 bg-neutral-900 text-neutral-300 text-sm mr-4">
+          <div className="rounded-lg px-3 py-2 bg-neutral-900 text-white text-sm mr-4">
             Думаю…
           </div>
         )}
@@ -118,7 +118,7 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
           }}
           placeholder={PLACEHOLDER}
           rows={2}
-          className="w-full px-3 py-2 bg-black border border-neutral-700 rounded text-white text-sm placeholder-neutral-500 focus:border-lime-400 focus:outline-none resize-none"
+          className="w-full px-3 py-2 bg-black border border-neutral-700 rounded text-white text-sm placeholder:text-white placeholder:opacity-80 focus:border-lime-400 focus:outline-none resize-none"
           disabled={loading}
         />
         <button

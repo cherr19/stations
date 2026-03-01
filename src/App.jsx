@@ -154,11 +154,16 @@ export default function FoundersVisionTool() {
   const [showComparisonConfirm, setShowComparisonConfirm] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [sandboxMessages, setSandboxMessages] = useState([])
-  const [isAdmin, setIsAdmin] = useState(() => (typeof window !== 'undefined' && storage.isAdmin()))
+  const [lockedUserFromUrl, setLockedUserFromUrl] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window === 'undefined') return false
+    storage.applyAdminFromUrl()
+    return storage.isAdmin()
+  })
   const scrollLeftRef = useRef(null)
 
   useEffect(() => {
-    const nowAdmin = storage.applyAdminFromUrl()
+    storage.applyAdminFromUrl()
     setIsAdmin(storage.isAdmin())
   }, [])
 
@@ -181,15 +186,17 @@ export default function FoundersVisionTool() {
     const id = loadRoomId()
     const userFromUrl = storage.getUserFromUrl()
     const screenFromUrl = storage.getScreenFromUrl()
-    logger.log('app', 'init', { roomId: id, user: userFromUrl, screen: screenFromUrl })
+    logger.log('app', 'init', { roomId: id, user: userFromUrl, screen: screenFromUrl, isAdmin })
     if (!id) return
     if (screenFromUrl === 'comparison' && userFromUrl) {
       setCurrentUser(userFromUrl)
+      setLockedUserFromUrl(userFromUrl)
       setCurrentScreen('comparison')
       return
     }
     if (userFromUrl) {
       setCurrentUser(userFromUrl)
+      setLockedUserFromUrl(userFromUrl)
       setCurrentScreen('intro')
     }
   }, [isAdmin, loadRoomId])
@@ -445,10 +452,14 @@ export default function FoundersVisionTool() {
               <IntroScreen
                 userName={USER_LABELS[currentUser]}
                 onStart={() => setCurrentScreen('filling')}
-                onSwitchUser={() => {
-                  setCurrentUser(null)
-                  setCurrentScreen('select')
-                }}
+                onSwitchUser={
+                  lockedUserFromUrl
+                    ? null
+                    : () => {
+                        setCurrentUser(null)
+                        setCurrentScreen('select')
+                      }
+                }
               />
             )}
             {currentScreen === 'filling' && currentUser && (
@@ -505,6 +516,7 @@ export default function FoundersVisionTool() {
           roomId={roomId}
           partnerStatus={partnerStatus}
           isAdmin={isAdmin}
+          lockedUser={lockedUserFromUrl}
           onSelect={(user) => {
             setCurrentUser(user)
             setCurrentScreen('intro')
@@ -607,7 +619,7 @@ function NoRoomScreen({ onPasteRoomId }) {
   )
 }
 
-function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect, onCopyLinkForUser }) {
+function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUser, onSelect, onCopyLinkForUser }) {
   const handleCopy = (user) => {
     const url = onCopyLinkForUser?.(user)
     if (url && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -617,12 +629,18 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect
   const shortRoomId = roomId ? `${roomId.slice(0, 8)}${roomId.length > 8 ? '…' : ''}` : '—'
   const tanyaStatus = statusLabel(partnerStatus.tanyaStarted, partnerStatus.tanyaFinished)
   const alenaStatus = statusLabel(partnerStatus.alenaStarted, partnerStatus.alenaFinished)
+  const lockedName = lockedUser ? USER_LABELS[lockedUser] : null
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
         Аудит видения основателей
       </h1>
+      {lockedUser && (
+        <p className="text-neutral-300 text-sm mb-4">
+          Вы вошли по ссылке как <strong className="text-white">{lockedName}</strong>. Сменить пользователя нельзя.
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <span className="text-neutral-500">Комната:</span>
         <code className="text-lime-400/90 bg-neutral-900 px-2 py-1 rounded font-mono text-sm" title={roomId}>
@@ -660,8 +678,15 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect
       <div className="grid grid-cols-2 gap-6">
         <button
           type="button"
-          onClick={() => onSelect('tanya')}
-          className="border-2 border-neutral-800 hover:border-purple-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors"
+          onClick={() => !lockedUser || lockedUser === 'tanya' ? onSelect('tanya') : undefined}
+          disabled={lockedUser === 'alena'}
+          className={`border-2 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
+            lockedUser === 'tanya'
+              ? 'border-purple-400 hover:border-purple-300'
+              : lockedUser === 'alena'
+                ? 'border-neutral-800 opacity-50 cursor-not-allowed'
+                : 'border-neutral-800 hover:border-purple-400'
+          }`}
         >
           <span className="w-20 h-20 rounded-full bg-purple-500/20 border border-purple-400 flex items-center justify-center text-3xl font-bold text-purple-400">
             T
@@ -671,8 +696,15 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect
         </button>
         <button
           type="button"
-          onClick={() => onSelect('alena')}
-          className="border-2 border-neutral-800 hover:border-cyan-400 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors"
+          onClick={() => !lockedUser || lockedUser === 'alena' ? onSelect('alena') : undefined}
+          disabled={lockedUser === 'tanya'}
+          className={`border-2 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
+            lockedUser === 'alena'
+              ? 'border-cyan-400 hover:border-cyan-300'
+              : lockedUser === 'tanya'
+                ? 'border-neutral-800 opacity-50 cursor-not-allowed'
+                : 'border-neutral-800 hover:border-cyan-400'
+          }`}
         >
           <span className="w-20 h-20 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-3xl font-bold text-cyan-400">
             A
@@ -709,15 +741,17 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect
 function IntroScreen({ userName, onStart, onSwitchUser }) {
   return (
     <div className="max-w-2xl mx-auto px-6 py-16">
-      <div className="flex justify-end mb-6">
-        <button
-          type="button"
-          onClick={onSwitchUser}
-          className="text-sm text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-4 py-2 transition-colors"
-        >
-          Сменить пользователя
-        </button>
-      </div>
+      {onSwitchUser && (
+        <div className="flex justify-end mb-6">
+          <button
+            type="button"
+            onClick={onSwitchUser}
+            className="text-sm text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-4 py-2 transition-colors"
+          >
+            Сменить пользователя
+          </button>
+        </div>
+      )}
       <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
         Привет, {userName}
       </h1>
