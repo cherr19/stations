@@ -345,14 +345,22 @@ export default function FoundersVisionTool() {
       setShowComparisonConfirm(true)
       return
     }
-    await loadBothForComparison()
+    try {
+      await loadBothForComparison()
+    } catch (e) {
+      logger.warn('app', 'loadBothForComparison failed', { error: String(e) })
+    }
     storage.setComparisonPageUrl(roomId, currentUser)
     setCurrentScreen('comparison')
   }
 
   const confirmGoToComparison = async () => {
     setShowComparisonConfirm(false)
-    await loadBothForComparison()
+    try {
+      await loadBothForComparison()
+    } catch (e) {
+      logger.warn('app', 'loadBothForComparison failed', { error: String(e) })
+    }
     storage.setComparisonPageUrl(roomId, currentUser)
     setCurrentScreen('comparison')
   }
@@ -449,6 +457,31 @@ export default function FoundersVisionTool() {
                 </div>
               ))}
           </pre>
+        </div>
+      )}
+      {showComparisonConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-neutral-950 border border-neutral-700 max-w-md w-full p-6 rounded">
+            <p className="text-white text-base mb-4">
+              Партнёр ещё не закончил заполнение. Сравнение будет неполным (много пустых полей и заниженный балл). Всё равно перейти к сравнению?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowComparisonConfirm(false)}
+                className="px-4 py-2 border border-neutral-600 text-neutral-300 hover:text-white"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={confirmGoToComparison}
+                className="px-4 py-2 bg-lime-400 text-black font-medium"
+              >
+                Перейти к сравнению
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {showSandbox ? (
@@ -561,32 +594,6 @@ export default function FoundersVisionTool() {
             if (link && navigator.clipboard) navigator.clipboard.writeText(link)
           }}
         />
-      )}
-
-      {showComparisonConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-neutral-950 border border-neutral-700 max-w-md w-full p-6 rounded">
-            <p className="text-white text-base mb-4">
-              Партнёр ещё не закончил заполнение. Сравнение будет неполным (много пустых полей и заниженный балл). Всё равно перейти к сравнению?
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowComparisonConfirm(false)}
-                className="px-4 py-2 border border-neutral-600 text-neutral-300 hover:text-white"
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                onClick={confirmGoToComparison}
-                className="px-4 py-2 bg-lime-400 text-black font-medium"
-              >
-                Перейти к сравнению
-              </button>
-            </div>
-          </div>
-        </div>
       )}
         </>
       )}
