@@ -86,17 +86,17 @@ export default function SandboxChat({ partTitle, partNumber, currentQuestionLabe
             className={`rounded-lg px-3 py-2 text-sm ${
               m.role === 'user'
                 ? 'bg-neutral-800 text-white ml-4'
-                : 'bg-neutral-900 text-neutral-300 mr-4'
+                : 'bg-neutral-900 text-white mr-4'
             }`}
           >
-            <span className="font-medium text-neutral-500 text-xs">{m.role === 'user' ? 'Вы' : 'Claude'}</span>
-            <div className="mt-1 whitespace-pre-wrap break-words">
+            <span className="font-medium text-neutral-400 text-xs">{m.role === 'user' ? 'Вы' : 'Claude'}</span>
+            <div className="mt-1 whitespace-pre-wrap break-words text-white">
               {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="rounded-lg px-3 py-2 bg-neutral-900 text-neutral-500 text-sm mr-4">
+          <div className="rounded-lg px-3 py-2 bg-neutral-900 text-neutral-300 text-sm mr-4">
             Думаю…
           </div>
         )}

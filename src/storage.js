@@ -66,6 +66,32 @@ async function initFirebase() {
   }
 }
 
+const ADMIN_STORAGE_KEY = 'vision_admin'
+
+/** Проверить, вошёл ли пользователь как админ (по sessionStorage) */
+export function isAdmin() {
+  if (typeof window === 'undefined') return false
+  return sessionStorage.getItem(ADMIN_STORAGE_KEY) === '1'
+}
+
+/** Если в URL есть ?admin=SECRET и он совпадает с VITE_ADMIN_SECRET — запомнить админа и убрать параметр из URL */
+export function applyAdminFromUrl() {
+  if (typeof window === 'undefined') return false
+  const secret = import.meta.env.VITE_ADMIN_SECRET
+  if (!secret) return isAdmin()
+  const params = new URLSearchParams(window.location.search)
+  const key = params.get('admin')
+  if (key === secret) {
+    sessionStorage.setItem(ADMIN_STORAGE_KEY, '1')
+    params.delete('admin')
+    const url = new URL(window.location.href)
+    url.search = params.toString()
+    window.history.replaceState({}, '', url.pathname + (url.search ? '?' + url.search : ''))
+    return true
+  }
+  return isAdmin()
+}
+
 export function getRoomIdFromUrl() {
   const params = new URLSearchParams(window.location.search)
   return params.get('room') || ''

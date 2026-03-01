@@ -154,19 +154,30 @@ export default function FoundersVisionTool() {
   const [showComparisonConfirm, setShowComparisonConfirm] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [sandboxMessages, setSandboxMessages] = useState([])
+  const [isAdmin, setIsAdmin] = useState(() => (typeof window !== 'undefined' && storage.isAdmin()))
   const scrollLeftRef = useRef(null)
+
+  useEffect(() => {
+    const nowAdmin = storage.applyAdminFromUrl()
+    setIsAdmin(storage.isAdmin())
+  }, [])
 
   const loadRoomId = useCallback(() => {
     let id = storage.getRoomIdFromUrl()
-    if (!id) {
+    if (!id && isAdmin) {
       id = storage.generateRoomId()
       storage.setRoomIdInUrl(id)
     }
-    setRoomId(id)
-    return id
-  }, [])
+    if (!id && !isAdmin) {
+      setRoomId('')
+      return ''
+    }
+    setRoomId(id || '')
+    return id || ''
+  }, [isAdmin])
 
   useEffect(() => {
+    if (!isAdmin && !storage.getRoomIdFromUrl()) return
     const id = loadRoomId()
     const userFromUrl = storage.getUserFromUrl()
     const screenFromUrl = storage.getScreenFromUrl()
@@ -181,7 +192,7 @@ export default function FoundersVisionTool() {
       setCurrentUser(userFromUrl)
       setCurrentScreen('intro')
     }
-  }, [loadRoomId])
+  }, [isAdmin, loadRoomId])
 
   const loadMyData = useCallback(async () => {
     if (!currentUser || !roomId) return
@@ -379,18 +390,21 @@ export default function FoundersVisionTool() {
     )
   }
 
+  const showNoRoom = currentScreen === 'select' && !roomId && !isAdmin
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <button
-        type="button"
-        onClick={() => setShowLogs((v) => !v)}
-        className="fixed left-4 z-40 px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-neutral-400 hover:text-white text-xs flex items-center gap-2"
-        style={{ bottom: '5.5rem' }}
-        title="Показать логи"
-      >
-        <Bug className="w-3.5 h-3.5" />
-        Логи
-      </button>
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => setShowLogs((v) => !v)}
+          className="fixed top-4 left-4 z-40 px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-neutral-400 hover:text-white text-xs flex items-center gap-2"
+          title="Показать логи"
+        >
+          <Bug className="w-3.5 h-3.5" />
+          Логи
+        </button>
+      )}
       {showLogs && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4">
           <div className="flex justify-between items-center mb-2">
@@ -476,10 +490,21 @@ export default function FoundersVisionTool() {
         </div>
       ) : (
         <>
-      {currentScreen === 'select' && (
+      {showNoRoom && (
+        <NoRoomScreen
+          onPasteRoomId={(id) => {
+            if (id && id.trim()) {
+              storage.setRoomIdInUrl(id.trim())
+              window.location.reload()
+            }
+          }}
+        />
+      )}
+      {currentScreen === 'select' && roomId && (
         <SelectUserScreen
           roomId={roomId}
           partnerStatus={partnerStatus}
+          isAdmin={isAdmin}
           onSelect={(user) => {
             setCurrentUser(user)
             setCurrentScreen('intro')
@@ -551,7 +576,38 @@ function statusLabel(started, finished) {
   return finished ? 'закончила' : 'заполняет'
 }
 
-function SelectUserScreen({ roomId, partnerStatus = {}, onSelect, onCopyLinkForUser }) {
+function NoRoomScreen({ onPasteRoomId }) {
+  const [pastedId, setPastedId] = useState('')
+  return (
+    <div className="max-w-lg mx-auto px-6 py-16 text-center">
+      <h1 className="text-2xl font-bold text-white mb-4">Нет комнаты</h1>
+      <p className="text-neutral-400 mb-8">
+        Получите ссылку на комнату у организатора (администратора). По этой ссылке вы попадёте в анкету.
+      </p>
+      <div className="border border-neutral-700 rounded-lg p-4 bg-neutral-950 text-left">
+        <p className="text-neutral-500 text-sm mb-2">Если вам прислали только ID комнаты, вставьте его ниже:</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={pastedId}
+            onChange={(e) => setPastedId(e.target.value)}
+            placeholder="например: a1b2c3d4-..."
+            className="flex-1 px-3 py-2 bg-black border border-neutral-700 rounded text-white text-sm placeholder-neutral-600 focus:border-lime-400 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onPasteRoomId(pastedId)}
+            className="px-4 py-2 bg-lime-500 hover:bg-lime-400 text-black font-medium text-sm rounded"
+          >
+            Войти
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, onSelect, onCopyLinkForUser }) {
   const handleCopy = (user) => {
     const url = onCopyLinkForUser?.(user)
     if (url && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -572,17 +628,19 @@ function SelectUserScreen({ roomId, partnerStatus = {}, onSelect, onCopyLinkForU
         <code className="text-lime-400/90 bg-neutral-900 px-2 py-1 rounded font-mono text-sm" title={roomId}>
           {shortRoomId}
         </code>
-        <button
-          type="button"
-          onClick={() => {
-            const id = storage.generateRoomId()
-            storage.setRoomIdInUrl(id)
-            window.location.reload()
-          }}
-          className="text-lime-400 hover:underline text-sm"
-        >
-          Создать новую
-        </button>
+        {admin && (
+          <button
+            type="button"
+            onClick={() => {
+              const id = storage.generateRoomId()
+              storage.setRoomIdInUrl(id)
+              window.location.reload()
+            }}
+            className="text-lime-400 hover:underline text-sm"
+          >
+            Создать новую
+          </button>
+        )}
       </div>
       <div className="border border-neutral-700 rounded-lg p-4 mb-8 bg-neutral-950">
         <p className="text-neutral-400 text-sm mb-3">Кто заполняет в этой комнате — нажми на себя, чтобы войти в свою анкету:</p>
