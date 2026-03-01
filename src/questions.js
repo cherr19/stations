@@ -46,6 +46,27 @@ export const SCORING_PARAMS = [
   { id: 'q21_why', label: 'Почему пугает', critical: false },
 ]
 
+/** ID вопросов по частям — для проверки «закончила заполнение» */
+const PART_1_IDS = ['q1', 'q2', 'q3_comfort', 'q3_good', 'q3_dream', 'q4', 'q5', 'q6', 'q7', 'scenario_a', 'scenario_b', 'scenario_c', 'scenario_favorite']
+const PART_2_IDS = ['q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q15_hours', 'q15_money', 'q15_months', 'q16', 'q17']
+const PART_3_IDS = ['q18a', 'q18b', 'q18c', 'q18d', 'q19a', 'q19b', 'q19c', 'q20a', 'q20b', 'q20c', 'q21', 'q21_why']
+
+function hasDataInPart(data, ids) {
+  if (!data || typeof data !== 'object') return false
+  return ids.some((id) => {
+    const v = data[id]
+    if (v == null) return false
+    if (typeof v === 'string') return v.trim() !== ''
+    if (Array.isArray(v)) return v.length > 0
+    if (typeof v === 'object') return Object.values(v).some((x) => x != null && String(x).trim() !== '')
+    return true
+  })
+}
+
+export function hasFinishedAll(data) {
+  return hasDataInPart(data, PART_1_IDS) && hasDataInPart(data, PART_2_IDS) && hasDataInPart(data, PART_3_IDS)
+}
+
 /** Структура формы по частям и блокам для рендера */
 export const PARTS = [
   {

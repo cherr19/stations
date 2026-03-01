@@ -182,27 +182,46 @@ WITH CHECK (true);
     ```bash
     git remote add origin https://github.com/ТВОЙ_ЛОГИН/founders-vision-tool.git
     ```
-15. Отправь код на GitHub:
+15. Отправь код на GitHub (команда ниже). При запросе логина и пароля **пароль от аккаунта GitHub подставлять нельзя** — GitHub больше не принимает обычный пароль. Нужен **токен** (Personal Access Token). Откуда его взять и что вводить — в блоке **7.1.1** ниже.
     ```bash
     git push -u origin main
     ```
-    Введи логин и пароль (или токен) GitHub, если попросит. После этого проект будет в репозитории на GitHub.
 
-**Если папка `founders-vision-tool` лежит внутри другого репозитория (например `cursor`) и `git init` в ней создаёт конфликт:** скопируй только содержимое папки в новую папку вне этого репо, затем в новой папке выполни шаги 10–15. Пример:
+**Если папка `founders-vision-tool` лежит внутри другого репозитория (например `cursor`):** используй подготовленную копию. В терминале:
 ```bash
-mkdir ~/founders-vision-deploy
-cp -r ~/cursor/founders-vision-tool/* ~/founders-vision-deploy/
-cp ~/cursor/founders-vision-tool/.env.example ~/founders-vision-deploy/ 2>/dev/null || true
-cp ~/cursor/founders-vision-tool/.gitignore ~/founders-vision-deploy/ 2>/dev/null || true
-cd ~/founders-vision-deploy
-git init
-git add .
-git commit -m "Initial: Founders Vision Tool"
-git branch -M main
-git remote add origin https://github.com/ТВОЙ_ЛОГИН/founders-vision-tool.git
+cd ~/cursor/founders-vision-tool-deploy
 git push -u origin main
 ```
-(Файл `.env.local` в репозиторий не попадёт — он в `.gitignore`.)
+Когда запросит **Username** — введи свой логин GitHub (например `cherr19`). Когда запросит **Password** — вставляй **токен** из шагов 7.1.1 (не пароль от входа в GitHub).
+
+---
+
+#### 7.1.1 Токен GitHub: откуда взять и что вводить при push
+
+GitHub не принимает обычный пароль при `git push`. Нужен **Personal Access Token** — его ты создаёшь в настройках и один раз вставляешь в Терминал вместо пароля.
+
+**Где создать токен (по шагам):**
+
+1. Открой в браузере **[github.com](https://github.com)** и войди в аккаунт.
+2. В **правом верхнем углу** нажми на свой **аватар** (фото или иконка) → в меню выбери **Settings**.
+3. В левой колонке страницы настроек **в самом низу** нажми **Developer settings**.
+4. В левой колонке выбери **Personal access tokens** → **Tokens (classic)**. (Если видишь только Fine-grained tokens — можно использовать их, тогда при создании выбери репозиторий и права **Contents: Read and write**.)
+5. Нажми зелёную кнопку **Generate new token** → **Generate new token (classic)**.
+6. На странице создания токена:
+   - **Note** — любое название, например: `stations deploy`.
+   - **Expiration** — выбери срок (например 90 days или No expiration).
+   - В блоке **Scopes** поставь галочку **repo** (полный доступ к репозиториям).
+7. Внизу нажми **Generate token**.
+8. **Скопируй показанный токен сразу** — он больше не отобразится. Выглядит как длинная строка букв и цифр (например `ghp_xxxxxxxxxxxx`).
+
+**Как использовать при push:**
+
+9. В Терминале выполни `git push -u origin main` (из папки проекта или из `founders-vision-tool-deploy`).
+10. Когда появится строка **Username for 'https://github.com':** — введи свой логин GitHub (например `cherr19`) и Enter.
+11. Когда появится **Password for 'https://ТВОЙ_ЛОГИН@github.com':** — **вставь скопированный токен** (Ctrl+V или Cmd+V) и Enter. **Не вводи пароль от входа в GitHub** — только этот токен.
+12. После успешного push код окажется в репозитории на GitHub.
+
+Если токен потерялся — создай новый в том же разделе (Developer settings → Personal access tokens) и используй его при следующем push.
 
 ---
 
@@ -213,7 +232,7 @@ git push -u origin main
 1. Зайди на **[vercel.com](https://vercel.com)** и нажми **Sign Up** или **Log in**.
 2. Выбери **Continue with GitHub** и разреши доступ Vercel к твоим репозиториям.
 3. На главной странице Vercel нажми **Add New…** → **Project**.
-4. В списке репозиториев найди **founders-vision-tool** (или как ты назвал репо) и нажми **Import** рядом с ним.
+4. В списке репозиториев найди нужный репозиторий (например **stations** или **founders-vision-tool** — как ты назвал при создании) и нажми **Import** рядом с ним.
 5. На странице настроек проекта:
    - **Root Directory** — оставь пустым (репозиторий у тебя уже только с этим приложением). Если по какой-то причине импортировала весь репо `cursor`, укажи **Root Directory**: `founders-vision-tool`.
    - Раскрой **Environment Variables**. Добавь две переменные (те же, что в `.env.local`):

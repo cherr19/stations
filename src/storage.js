@@ -3,6 +3,9 @@
  * Комната (roomId) в URL — оба пользователя используют один roomId для синхронизации.
  */
 
+import { hasFinishedAll } from './questions.js'
+import * as logger from './logger.js'
+
 const STORAGE_PREFIX = 'vision_room_'
 const TABLE_NAME = 'vision_rooms'
 
@@ -22,9 +25,10 @@ async function getSupabaseAsync() {
   try {
     const { createClient } = await import('@supabase/supabase-js')
     supabaseClient = createClient(config.url, config.anonKey)
+    logger.log('storage', 'Supabase client initialized')
     return supabaseClient
   } catch (e) {
-    console.warn('Supabase init failed', e)
+    logger.warn('storage', 'Supabase init failed', { error: String(e) })
     return null
   }
 }
@@ -72,6 +76,46 @@ export function getUserFromUrl() {
   const params = new URLSearchParams(window.location.search)
   const u = params.get('user')
   return u === 'tanya' || u === 'alena' ? u : null
+}
+
+/** screen = 'select' | 'intro' | 'filling' | 'comparison' | null */
+export function getScreenFromUrl() {
+  const params = new URLSearchParams(window.location.search)
+  const s = params.get('screen')
+  return s === 'comparison' ? 'comparison' : null
+}
+
+export function setScreenInUrl(screen) {
+  const url = new URL(window.location.href)
+  if (screen) url.searchParams.set('screen', screen)
+  else url.searchParams.delete('screen')
+  window.history.replaceState({}, '', url.toString())
+}
+
+export function setUserInUrl(user) {
+  const url = new URL(window.location.href)
+  if (user) url.searchParams.set('user', user)
+  else url.searchParams.delete('user')
+  window.history.replaceState({}, '', url.toString())
+}
+
+/** Выставить в адресной строке полный URL страницы сравнения комнаты (чтобы можно было вернуться по ссылке) */
+export function setComparisonPageUrl(roomId, user) {
+  if (typeof window === 'undefined') return
+  const base = window.location.origin + window.location.pathname
+  const params = new URLSearchParams({ room: roomId, screen: 'comparison' })
+  if (user) params.set('user', user)
+  const newUrl = `${base}?${params.toString()}`
+  window.history.replaceState({}, '', newUrl)
+}
+
+/** Ссылка на страницу сравнения комнаты (можно сохранить и открыть позже) */
+export function getComparisonLink(roomId, user) {
+  if (!roomId) return ''
+  const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+  const params = new URLSearchParams({ room: roomId, screen: 'comparison' })
+  if (user) params.set('user', user)
+  return `${base}?${params.toString()}`
 }
 
 /** Полная ссылка для отправки партнёру (с room и user) */
@@ -126,8 +170,9 @@ export async function saveData(roomId, user, data) {
         onConflict: 'room_id',
       })
       if (error) throw error
+      logger.log('storage', 'saveData OK', { roomId, user, backend: 'supabase' })
     } catch (e) {
-      console.error('Supabase save failed', e)
+      logger.error('storage', 'Supabase save failed', { roomId, user, error: String(e) })
       throw e
     }
     return
@@ -141,8 +186,9 @@ export async function saveData(roomId, user, data) {
         [user === 'tanya' ? 'tanyaData' : 'alenaData']: JSON.stringify(data),
         updatedAt: new Date().toISOString(),
       }, { merge: true })
+      logger.log('storage', 'saveData OK', { roomId, user, backend: 'firebase' })
     } catch (e) {
-      console.error('Firebase save failed', e)
+      logger.error('storage', 'Firebase save failed', { roomId, user, error: String(e) })
       throw e
     }
     return
@@ -150,14 +196,18 @@ export async function saveData(roomId, user, data) {
   const key = `${STORAGE_PREFIX}${roomId}_${user}`
   try {
     localStorage.setItem(key, JSON.stringify(data))
+    logger.log('storage', 'saveData OK', { roomId, user, backend: 'localStorage' })
   } catch (e) {
-    console.error('localStorage save failed', e)
+    logger.error('storage', 'localStorage save failed', { key, error: String(e) })
   }
 }
 
 /** Загрузить данные обоих пользователей (для экрана сравнения) */
 export async function loadRoom(roomId) {
-  if (!roomId) return { tanyaData: {}, alenaData: {} }
+  if (!roomId) {
+    logger.log('storage', 'loadRoom skip', { reason: 'no roomId' })
+    return { tanyaData: {}, alenaData: {} }
+  }
   const sb = await getSupabaseAsync()
   if (sb) {
     try {
@@ -167,12 +217,11 @@ export async function loadRoom(roomId) {
         .eq('room_id', roomId)
         .maybeSingle()
       if (error) throw error
-      return {
-        tanyaData: data?.tanya_data ?? {},
-        alenaData: data?.alena_data ?? {},
-      }
+      const out = { tanyaData: data?.tanya_data ?? {}, alenaData: data?.alena_data ?? {} }
+      logger.log('storage', 'loadRoom OK', { roomId, backend: 'supabase', keysT: Object.keys(out.tanyaData).length, keysA: Object.keys(out.alenaData).length })
+      return out
     } catch (e) {
-      console.error('Supabase load failed', e)
+      logger.error('storage', 'Supabase loadRoom failed', { roomId, error: String(e) })
       return { tanyaData: {}, alenaData: {} }
     }
   }
@@ -183,17 +232,20 @@ export async function loadRoom(roomId) {
       const ref = doc(db, 'vision_rooms', roomId)
       const snap = await getDoc(ref)
       const d = snap.data() || {}
-      return {
+      const out = {
         tanyaData: d.tanyaData ? JSON.parse(d.tanyaData) : {},
         alenaData: d.alenaData ? JSON.parse(d.alenaData) : {},
       }
+      logger.log('storage', 'loadRoom OK', { roomId, backend: 'firebase' })
+      return out
     } catch (e) {
-      console.error('Firebase load failed', e)
+      logger.error('storage', 'Firebase loadRoom failed', { roomId, error: String(e) })
       return { tanyaData: {}, alenaData: {} }
     }
   }
   const tanyaRaw = localStorage.getItem(`${STORAGE_PREFIX}${roomId}_tanya`)
   const alenaRaw = localStorage.getItem(`${STORAGE_PREFIX}${roomId}_alena`)
+  logger.log('storage', 'loadRoom OK', { roomId, backend: 'localStorage' })
   return {
     tanyaData: tanyaRaw ? JSON.parse(tanyaRaw) : {},
     alenaData: alenaRaw ? JSON.parse(alenaRaw) : {},
@@ -206,13 +258,17 @@ export async function loadMyData(roomId, user) {
   return user === 'tanya' ? tanyaData : alenaData
 }
 
-/** Статус: кто уже начал заполнение (без раскрытия содержимого) */
+/** Статус: кто начал и кто закончил заполнение (без раскрытия содержимого) */
 export async function getRoomStatus(roomId) {
   const { tanyaData, alenaData } = await loadRoom(roomId)
-  return {
+  const status = {
     tanyaStarted: hasAnyData(tanyaData),
     alenaStarted: hasAnyData(alenaData),
+    tanyaFinished: hasFinishedAll(tanyaData || {}),
+    alenaFinished: hasFinishedAll(alenaData || {}),
   }
+  logger.log('storage', 'getRoomStatus', { roomId, ...status })
+  return status
 }
 
 export function isCloudStorageAvailable() {
