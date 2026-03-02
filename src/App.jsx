@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   ChevronRight,
   ChevronDown,
-  CheckCircle,
-  AlertTriangle,
-  AlertCircle,
-  XCircle,
   Download,
   Upload,
   FileText,
   Bug,
 } from 'lucide-react'
 import * as storage from './storage'
-import { PARTS, SCORING_PARAMS } from './questions'
+import { PARTS, SCORING_PARAMS, TEXT_ANSWER_PARAM_IDS } from './questions'
 import { calculateScore, getDecision, formatCellValue } from './scoring'
 import { buildMyAnswersMd, buildReportMd } from './exportMd'
 import * as logger from './logger'
@@ -638,6 +634,7 @@ export default function FoundersVisionTool() {
           aiAnalysisError={aiAnalysisError}
           aiAnalysisOutdated={isAiAnalysisOutdated}
           onRefreshAiAnalysis={runAiAnalysisForRoom}
+          textOnlyParamIds={TEXT_ANSWER_PARAM_IDS}
           onBackToFilling={() => {
             storage.setScreenInUrl('')
             setCurrentScreen('filling')
@@ -1059,9 +1056,6 @@ function FillingScreen({
   )
 }
 
-const DECISION_ICONS = { GO: CheckCircle, 'GO с оговорками': AlertTriangle, PIVOT: AlertCircle, 'NO-GO': XCircle }
-const DECISION_BORDER = { GO: 'border-lime-400', 'GO с оговорками': 'border-yellow-400', PIVOT: 'border-orange-400', 'NO-GO': 'border-red-400' }
-const DECISION_BG = { GO: 'bg-lime-400/5', 'GO с оговорками': 'bg-yellow-400/5', PIVOT: 'bg-orange-400/5', 'NO-GO': 'bg-red-400/5' }
 const MATCH_CLASS = {
   full: 'border-lime-400 bg-lime-400/10 text-lime-400',
   partial: 'border-yellow-400 bg-yellow-400/10 text-yellow-400',
@@ -1069,8 +1063,6 @@ const MATCH_CLASS = {
   empty: 'border-neutral-700 bg-neutral-900 text-neutral-500',
 }
 const MATCH_LABEL = { full: '✓ Полное', partial: '~ Частичное', none: '✗ Различия', empty: '—' }
-
-const DECISION_ICON_COLOR = { GO: 'text-lime-400', 'GO с оговорками': 'text-yellow-400', PIVOT: 'text-orange-400', 'NO-GO': 'text-red-400' }
 
 const AI_VERDICT_LABEL = { GO: 'GO', CONDITIONAL_GO: 'GO с оговорками', PIVOT: 'PIVOT', NO_GO: 'NO-GO' }
 
@@ -1090,11 +1082,8 @@ function ComparisonScreen({
   aiAnalysisError,
   aiAnalysisOutdated,
   onRefreshAiAnalysis,
+  textOnlyParamIds = new Set(),
 }) {
-  const Icon = DECISION_ICONS[decision.type] || AlertCircle
-  const borderClass = DECISION_BORDER[decision.type] || 'border-neutral-600'
-  const bgClass = DECISION_BG[decision.type] || 'bg-neutral-900'
-  const iconColorClass = DECISION_ICON_COLOR[decision.type] || 'text-neutral-400'
   const comparisonUrl = roomId ? storage.getComparisonLink(roomId, currentUser) : ''
 
   return (
@@ -1120,22 +1109,6 @@ function ComparisonScreen({
               Копировать ссылку
             </button>
           )}
-        </div>
-      </div>
-
-      <div className={`border-2 ${borderClass} ${bgClass} p-6 mb-8`}>
-        <div className="flex items-center gap-3 mb-2">
-          <Icon className={`w-8 h-8 ${iconColorClass}`} />
-          <span className="text-xl font-bold text-white">{decision.type}</span>
-        </div>
-        <p className="text-neutral-400 text-base">
-          Совместимость видения: <strong className="text-white">{pct}%</strong> ({score} / {max} баллов)
-        </p>
-        <div className="mt-4 h-2 bg-neutral-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-lime-400 transition-all duration-500"
-            style={{ width: `${Math.min(100, Number(pct))}%` }}
-          />
         </div>
       </div>
 
@@ -1238,7 +1211,9 @@ function ComparisonScreen({
       </div>
 
       <div className="space-y-3 max-w-full">
-        {details.map((d) => (
+        {details.map((d) => {
+          const isTextOnly = textOnlyParamIds.has(d.id)
+          return (
           <div
             key={d.id}
             className="rounded border border-neutral-800 bg-neutral-950/50 p-4 break-words overflow-hidden"
@@ -1246,11 +1221,13 @@ function ComparisonScreen({
             <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <span className="text-white font-medium">
                 {d.label}
-                {d.critical && ' ⭐'}
+                {d.critical && !isTextOnly && ' ⭐'}
               </span>
-              <span className={`shrink-0 px-2 py-1 border rounded text-sm ${MATCH_CLASS[d.match]}`}>
-                {MATCH_LABEL[d.match]}
-              </span>
+              {!isTextOnly && (
+                <span className={`shrink-0 px-2 py-1 border rounded text-sm ${MATCH_CLASS[d.match]}`}>
+                  {MATCH_LABEL[d.match]}
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div>
@@ -1263,13 +1240,14 @@ function ComparisonScreen({
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="border-l-4 border-lime-400 bg-neutral-950 pl-6 py-4 mt-8 mb-8">
         <h3 className="font-semibold text-white mb-2 text-base">Следующие шаги</h3>
         <ol className="list-decimal list-inside space-y-1 text-neutral-400 text-base">
-          <li>Обсудите параметры с пометкой «Различия» и «Частичное».</li>
+          <li>Опирайтесь на выводы AI-анализа и обсудите вопросы из блока выше.</li>
           <li>Зафиксируйте компромиссы и красные линии в совместной декларации.</li>
           <li>Назначьте дату ревью видения (например, через 3–6 месяцев).</li>
         </ol>
