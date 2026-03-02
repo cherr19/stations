@@ -108,13 +108,21 @@ ${alenaSummary}
   }
 
   const data = await res.json()
-  const raw = data.choices?.[0]?.message?.content?.trim() ?? ''
-  const jsonStr = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
+  let raw = data.choices?.[0]?.message?.content?.trim() ?? ''
+  raw = raw.replace(/^```json\s*/i, '').replace(/^json\s*/i, '').replace(/\s*```$/i, '').trim()
+  const firstBrace = raw.indexOf('{')
+  const jsonStr = firstBrace >= 0 ? raw.slice(firstBrace) : raw
   let parsed
   try {
     parsed = JSON.parse(jsonStr)
-  } catch (e) {
-    throw new Error(`AI вернул невалидный JSON: ${raw.slice(0, 300)}`)
+  } catch (e1) {
+    const lastBrace = jsonStr.lastIndexOf('}')
+    const trimmed = lastBrace >= 0 ? jsonStr.slice(0, lastBrace + 1) : jsonStr
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch (e2) {
+      parsed = salvageParsedFromRaw(jsonStr)
+    }
   }
 
   return {
@@ -129,5 +137,27 @@ ${alenaSummary}
       : [],
     discussion_questions: Array.isArray(parsed.discussion_questions) ? parsed.discussion_questions.map(String) : [],
     summary: String(parsed.summary ?? ''),
+  }
+}
+
+/** Вытащить из обрезанного/невалидного JSON хотя бы score и verdict по regex */
+function salvageParsedFromRaw(str) {
+  const scoreMatch = str.match(/"ai_compatibility_score"\s*:\s*(\d+)/)
+  const verdictMatch = str.match(/"ai_verdict"\s*:\s*"([^"]*)"/)
+  const strengthsMatch = str.match(/"strengths"\s*:\s*\[([\s\S]*?)\]/)
+  const summaryMatch = str.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+  const strengths = []
+  if (strengthsMatch) {
+    const arrStr = strengthsMatch[1]
+    const parts = arrStr.match(/"([^"]*(?:\\.[^"]*)*)"/g)
+    if (parts) strengths.push(...parts.map((p) => p.slice(1, -1).replace(/\\"/g, '"')))
+  }
+  return {
+    ai_compatibility_score: scoreMatch ? Number(scoreMatch[1]) : 0,
+    ai_verdict: verdictMatch ? verdictMatch[1] : 'PIVOT',
+    strengths,
+    critical_conflicts: [],
+    discussion_questions: [],
+    summary: summaryMatch ? summaryMatch[1].replace(/\\n/g, '\n') : '',
   }
 }

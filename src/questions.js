@@ -5,6 +5,12 @@
 
 export const CRITICAL_IDS = new Set(['q6', 'q7', 'q9', 'q11', 'q17'])
 
+/** ID параметров с текстовым ответом (textarea, compound): не участвуют в подсчёте баллов, только в таблице сравнения */
+export const TEXT_ANSWER_PARAM_IDS = new Set([
+  'q1', 'q6', 'scenario_a', 'scenario_b', 'scenario_c', 'q8', 'q10', 'q11', 'q12', 'q13', 'q16', 'q17',
+  'q18a', 'q18b', 'q18c', 'q19a', 'q19b', 'q20b', 'q21_why',
+])
+
 /** Параметры для подсчёта баллов: id, label для таблицы сравнения, critical */
 export const SCORING_PARAMS = [
   { id: 'q1', label: 'Идеальная жизнь через 5 лет', critical: false },

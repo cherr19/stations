@@ -1,4 +1,4 @@
-import { SCORING_PARAMS } from './questions'
+import { SCORING_PARAMS, TEXT_ANSWER_PARAM_IDS } from './questions'
 
 const SIMILARITY_THRESHOLD = 0.5
 
@@ -62,25 +62,27 @@ function compareValues(tVal, aVal, id) {
   return 'none'
 }
 
-/** Подсчёт баллов: все параметры, критические вес 4, остальные 2. full=weight, partial=weight/2, none/empty=0 */
+/** Подсчёт баллов: параметры с текстовым ответом не дают баллов (только в таблице). Остальные: critical вес 4, иначе 2. full=weight, partial=weight/2, none/empty=0 */
 export function calculateScore(tanyaData, alenaData) {
   let totalScore = 0
   let maxScore = 0
   const details = []
 
   for (const param of SCORING_PARAMS) {
-    const weight = param.critical ? 4 : 2
-    maxScore += weight
-
     const tVal = tanyaData[param.id]
     const aVal = alenaData[param.id]
     const match = compareValues(tVal, aVal, param.id)
 
+    const isTextOnly = TEXT_ANSWER_PARAM_IDS.has(param.id)
+    const weight = isTextOnly ? 0 : (param.critical ? 4 : 2)
     let earned = 0
-    if (match === 'full') earned = weight
-    else if (match === 'partial') earned = weight / 2
+    if (!isTextOnly) {
+      maxScore += weight
+      if (match === 'full') earned = weight
+      else if (match === 'partial') earned = weight / 2
+      totalScore += earned
+    }
 
-    totalScore += earned
     details.push({
       id: param.id,
       label: param.label,
