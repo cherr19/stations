@@ -1186,6 +1186,19 @@ function ComparisonScreen({
                   </ul>
                 </div>
               )}
+              {aiAnalysis.divergence_areas && aiAnalysis.divergence_areas.length > 0 && (
+                <div>
+                  <h4 className="text-sky-400 font-medium mb-2">Где есть расхождения и на что обратить внимание</h4>
+                  <ul className="space-y-2">
+                    {aiAnalysis.divergence_areas.map((d, i) => (
+                      <li key={i} className="border-l-2 border-sky-500/50 pl-3 py-1.5">
+                        <span className="text-neutral-200 font-medium">{d.area}</span>
+                        {d.note && <p className="text-neutral-400 text-sm mt-1">{d.note}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {aiAnalysis.discussion_questions && aiAnalysis.discussion_questions.length > 0 && (
                 <div>
                   <h4 className="text-cyan-400 font-medium mb-2">Вопросы для обсуждения</h4>

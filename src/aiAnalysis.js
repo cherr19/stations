@@ -71,6 +71,7 @@ ${alenaSummary}
 - **ai_verdict** — одна из строк: "GO", "CONDITIONAL_GO", "PIVOT", "NO_GO".
 - **strengths** — массив строк (2–5 пунктов): в чём партнёры совпадают по смыслу (миссия, риски, роли, ценности).
 - **critical_conflicts** — массив объектов с полями "title" (короткое название конфликта) и "recommendation" (что обсудить или как смягчить). Только реальные противоречия по сути (приоритеты одного vs ограничения другого, расхождения по часам/ролям и т.п.).
+- **divergence_areas** — массив объектов с полями "area" (тема/область, где есть расхождения: например "Доход и уровень жизни", "Роли в бизнесе") и "note" (на что обратить внимание и что стоит обсудить по этой теме). 3–7 пунктов: все значимые зоны расхождения с конкретными подсказками для обсуждения.
 - **discussion_questions** — массив из 3–5 конкретных вопросов для живой встречи, чтобы закрыть расхождения.
 - **summary** — одна строка с 2–3 абзацами (разделяй абзацы символом \\n\\n): резюме совместимости, главные точки совпадения и зоны для обсуждения.
 
@@ -135,6 +136,12 @@ ${alenaSummary}
           recommendation: c?.recommendation != null ? String(c.recommendation) : '',
         }))
       : [],
+    divergence_areas: Array.isArray(parsed.divergence_areas)
+      ? parsed.divergence_areas.map((d) => ({
+          area: d?.area != null ? String(d.area) : '',
+          note: d?.note != null ? String(d.note) : '',
+        })).filter((d) => d.area.trim())
+      : [],
     discussion_questions: Array.isArray(parsed.discussion_questions) ? parsed.discussion_questions.map(String) : [],
     summary: String(parsed.summary ?? ''),
   }
@@ -157,6 +164,7 @@ function salvageParsedFromRaw(str) {
     ai_verdict: verdictMatch ? verdictMatch[1] : 'PIVOT',
     strengths,
     critical_conflicts: [],
+    divergence_areas: [],
     discussion_questions: [],
     summary: summaryMatch ? summaryMatch[1].replace(/\\n/g, '\n') : '',
   }

@@ -79,6 +79,15 @@ export function buildReportMd(report) {
       })
       lines.push('')
     }
+    if (aiAnalysis.divergence_areas && aiAnalysis.divergence_areas.length > 0) {
+      lines.push('### Где есть расхождения и на что обратить внимание')
+      lines.push('')
+      aiAnalysis.divergence_areas.forEach((d) => {
+        lines.push(`- **${d.area}**`)
+        if (d.note) lines.push(`  ${d.note}`)
+      })
+      lines.push('')
+    }
     if (aiAnalysis.discussion_questions && aiAnalysis.discussion_questions.length > 0) {
       lines.push('### Вопросы для обсуждения')
       lines.push('')
