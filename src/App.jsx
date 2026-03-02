@@ -376,12 +376,15 @@ export default function FoundersVisionTool() {
 
   useEffect(() => {
     if (currentScreen !== 'comparison' || !roomId || aiAnalysisLoading) return
-    const hasData = Object.keys(tanyaData).length > 0 || Object.keys(alenaData).length > 0
+    const hasTanya = Object.keys(tanyaData).length > 0
+    const hasAlena = Object.keys(alenaData).length > 0
+    const hasData = hasTanya || hasAlena
     if (!hasData || !isAiAnalysisAvailable()) return
-    if (!aiAnalysis && !aiAnalysisError) {
+    const needNewAnalysis = !aiAnalysis || isAiAnalysisOutdated
+    if (needNewAnalysis && !aiAnalysisError) {
       runAiAnalysisForRoom()
     }
-  }, [currentScreen, roomId, tanyaData, alenaData, aiAnalysis, aiAnalysisLoading, aiAnalysisError, runAiAnalysisForRoom])
+  }, [currentScreen, roomId, tanyaData, alenaData, aiAnalysis, aiAnalysisLoading, aiAnalysisError, isAiAnalysisOutdated, runAiAnalysisForRoom])
 
   const goToComparison = async () => {
     const partnerFinished = currentUser === 'tanya' ? partnerStatus.alenaFinished : partnerStatus.tanyaFinished
