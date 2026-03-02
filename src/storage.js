@@ -251,9 +251,10 @@ export async function loadRoom(roomId) {
         }
         return {}
       }
+      // snake_case (стандарт) или camelCase (если таблица создана вручную)
       const out = {
-        tanyaData: ensureObj(data?.tanya_data),
-        alenaData: ensureObj(data?.alena_data),
+        tanyaData: ensureObj(data?.tanya_data ?? data?.tanyaData),
+        alenaData: ensureObj(data?.alena_data ?? data?.alenaData),
         aiAnalysis: data?.ai_analysis ?? null,
         aiAnalysisAt: data?.ai_analysis_at ?? null,
         roomUpdatedAt: data?.updated_at ?? null,

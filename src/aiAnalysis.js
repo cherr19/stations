@@ -49,8 +49,15 @@ export async function runAiAnalysis(input) {
   const { tanyaData, alenaData, score, max, pct, details } = input
   const detailsText = buildDetailsText(details)
   const tanyaSummary = buildAnswersSummary(tanyaData, 'Ответы Тани')
-  const alenaSummary = buildAnswersSummary(alenaData, 'Ответы Алены')
-  const hasAlena = Object.keys(alenaData || {}).some((k) => {
+  let alenaSummary = buildAnswersSummary(alenaData, 'Ответы Алены')
+  // Fallback: если buildAnswersSummary пуст, но в details есть ответы Алены — собираем из таблицы
+  if (!alenaSummary && details.some((d) => d.aVal != null && formatCellValue(d.aVal) !== '—')) {
+    const lines = details
+      .filter((d) => d.aVal != null && formatCellValue(d.aVal) !== '—')
+      .map((d) => `${d.label}: ${formatCellValue(d.aVal).slice(0, 200).replace(/\n/g, ' ')}`)
+    alenaSummary = lines.length ? `Ответы Алены:\n${lines.join('\n')}` : ''
+  }
+  const hasAlenaFromData = Object.keys(alenaData || {}).some((k) => {
     const v = alenaData[k]
     if (v == null) return false
     if (typeof v === 'string') return v.trim() !== ''
@@ -58,7 +65,8 @@ export async function runAiAnalysis(input) {
     if (typeof v === 'object') return Object.values(v).some((x) => x != null && String(x).trim() !== '')
     return true
   })
-  const dataStatus = hasAlena ? 'Обе со-основательницы заполнили опросник. Ответы Алены обязательно учти — они есть в блоке «Ответы Алены» ниже.' : 'Только Таня заполнила.'
+  const hasAlena = hasAlenaFromData || !!alenaSummary
+  const dataStatus = hasAlena ? 'Обе со-основательницы заполнили опросник. Ответы Алены обязательно учти — они есть в блоке «Ответы Алены» и в таблице сравнения выше.' : 'Только Таня заполнила.'
 
   const userContent = `
 Ниже данные двух со-основательниц (Таня и Алена), заполнивших опросник по выравниванию видения (Founders Vision Alignment).

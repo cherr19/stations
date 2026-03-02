@@ -345,10 +345,19 @@ export default function FoundersVisionTool() {
     setAiAnalysisLoading(true)
     setAiAnalysisError(null)
     try {
-      // Загружаем свежие данные прямо перед анализом — не полагаемся на state, чтобы избежать расхождений
+      // Загружаем свежие данные прямо перед анализом
       const room = await storage.loadRoom(roomId)
-      const freshTanya = room.tanyaData || {}
-      const freshAlena = room.alenaData || {}
+      let freshTanya = room.tanyaData || {}
+      let freshAlena = room.alenaData || {}
+      // Fallback: если loadRoom вернул пусто для одного, но в state есть (таблица показывает) — используем state
+      if (Object.keys(freshAlena).length === 0 && Object.keys(alenaData).length > 0) {
+        logger.warn('app', 'loadRoom вернул пустого Алену, используем state', { keysA: Object.keys(alenaData).length })
+        freshAlena = alenaData
+      }
+      if (Object.keys(freshTanya).length === 0 && Object.keys(tanyaData).length > 0) {
+        logger.warn('app', 'loadRoom вернул пустую Таню, используем state', { keysT: Object.keys(tanyaData).length })
+        freshTanya = tanyaData
+      }
       const { score, max, details } = calculateScore(freshTanya, freshAlena)
       const pct = max > 0 ? ((score / max) * 100).toFixed(1) : '0'
       const result = await runAiAnalysis({
@@ -369,7 +378,7 @@ export default function FoundersVisionTool() {
     } finally {
       setAiAnalysisLoading(false)
     }
-  }, [roomId])
+  }, [roomId, tanyaData, alenaData])
 
   useEffect(() => {
     if (currentScreen === 'comparison' && roomId) {
