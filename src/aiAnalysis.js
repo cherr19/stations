@@ -90,7 +90,6 @@ ${alenaSummary}
           ai_verdict: { type: 'string', enum: ['GO', 'CONDITIONAL_GO', 'PIVOT', 'NO_GO'], description: 'Вердикт' },
           strengths: {
             type: 'array',
-            minItems: 2,
             items: { type: 'string' },
             description: '2-5 пунктов: совпадения по смыслу',
           },
@@ -109,7 +108,6 @@ ${alenaSummary}
           },
           divergence_areas: {
             type: 'array',
-            minItems: 3,
             items: {
               type: 'object',
               properties: {
@@ -123,11 +121,10 @@ ${alenaSummary}
           },
           discussion_questions: {
             type: 'array',
-            minItems: 3,
             items: { type: 'string' },
             description: '3-5 вопросов для встречи',
           },
-          summary: { type: 'string', minLength: 80, description: '2-3 абзаца резюме на русском' },
+          summary: { type: 'string', description: '2-3 абзаца резюме на русском' },
         },
         required: ['ai_compatibility_score', 'ai_verdict', 'strengths', 'critical_conflicts', 'divergence_areas', 'discussion_questions', 'summary'],
         additionalProperties: false,
