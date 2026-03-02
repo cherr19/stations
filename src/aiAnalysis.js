@@ -65,18 +65,75 @@ ${alenaSummary}
 
 ---
 
-Проведи семантический анализ и верни ответ **строго в формате JSON** (без markdown-блоков и пояснений до/после), один объект с ключами:
+Проведи семантический анализ и верни **полный** ответ **строго в формате JSON** (без markdown-блоков и пояснений до/после). Один объект со всеми ключами ниже. Обязательно заполни каждый раздел; не обрезай ответ.
 
-- **ai_compatibility_score** — число 0–100 (оценка совместимости по смыслу, не только по буквальному совпадению).
+- **ai_compatibility_score** — число 0–100 (оценка совместимости по смыслу).
 - **ai_verdict** — одна из строк: "GO", "CONDITIONAL_GO", "PIVOT", "NO_GO".
 - **strengths** — массив строк (2–5 пунктов): в чём партнёры совпадают по смыслу (миссия, риски, роли, ценности).
-- **critical_conflicts** — массив объектов с полями "title" (короткое название конфликта) и "recommendation" (что обсудить или как смягчить). Только реальные противоречия по сути (приоритеты одного vs ограничения другого, расхождения по часам/ролям и т.п.).
-- **divergence_areas** — массив объектов с полями "area" (тема/область, где есть расхождения: например "Доход и уровень жизни", "Роли в бизнесе") и "note" (на что обратить внимание и что стоит обсудить по этой теме). 3–7 пунктов: все значимые зоны расхождения с конкретными подсказками для обсуждения.
-- **discussion_questions** — массив из 3–5 конкретных вопросов для живой встречи, чтобы закрыть расхождения.
-- **summary** — одна строка с 2–3 абзацами (разделяй абзацы символом \\n\\n): резюме совместимости, главные точки совпадения и зоны для обсуждения.
+- **critical_conflicts** — массив объектов с полями "title" и "recommendation". Реальные противоречия по сути (приоритеты vs ограничения, расхождения по часам/ролям). Если явных конфликтов нет — пустой массив [].
+- **divergence_areas** — массив объектов с полями "area" и "note": темы расхождений и на что обратить внимание. 3–7 пунктов.
+- **discussion_questions** — массив из 3–5 конкретных вопросов для встречи. Обязательно заполни.
+- **summary** — одна строка с 2–3 абзацами (разделяй \\n\\n): резюме совместимости, точки совпадения и зоны для обсуждения. Обязательно заполни.
 
-Критерии: (1) семантическое совпадение текстов, (2) скрытые конфликты по сути, (3) operational compatibility (роли, делегирование, готовность к нагрузке). Пиши на русском.
+Критерии: (1) семантика текстов, (2) скрытые конфликты, (3) operational compatibility. Пиши на русском. Верни полный JSON без сокращений.
 `.trim()
+
+  const responseFormat = {
+    type: 'json_schema',
+    json_schema: {
+      name: 'founders_compatibility',
+      strict: true,
+      schema: {
+        type: 'object',
+        properties: {
+          ai_compatibility_score: { type: 'number', description: 'Оценка совместимости 0-100' },
+          ai_verdict: { type: 'string', enum: ['GO', 'CONDITIONAL_GO', 'PIVOT', 'NO_GO'], description: 'Вердикт' },
+          strengths: {
+            type: 'array',
+            minItems: 2,
+            items: { type: 'string' },
+            description: '2-5 пунктов: совпадения по смыслу',
+          },
+          critical_conflicts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                recommendation: { type: 'string' },
+              },
+              required: ['title', 'recommendation'],
+              additionalProperties: false,
+            },
+            description: 'Реальные противоречия',
+          },
+          divergence_areas: {
+            type: 'array',
+            minItems: 3,
+            items: {
+              type: 'object',
+              properties: {
+                area: { type: 'string' },
+                note: { type: 'string' },
+              },
+              required: ['area', 'note'],
+              additionalProperties: false,
+            },
+            description: '3-7 тем расхождений с подсказками',
+          },
+          discussion_questions: {
+            type: 'array',
+            minItems: 3,
+            items: { type: 'string' },
+            description: '3-5 вопросов для встречи',
+          },
+          summary: { type: 'string', minLength: 80, description: '2-3 абзаца резюме на русском' },
+        },
+        required: ['ai_compatibility_score', 'ai_verdict', 'strengths', 'critical_conflicts', 'divergence_areas', 'discussion_questions', 'summary'],
+        additionalProperties: false,
+      },
+    },
+  }
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 90000)
@@ -93,12 +150,13 @@ ${alenaSummary}
       messages: [
         {
           role: 'system',
-          content: 'Ты аналитик совместимости видения со-основателей. Отвечай только валидным JSON с запрошенными полями. Без комментариев вне JSON.',
+          content: 'Ты аналитик совместимости видения со-основателей. Верни валидный JSON по схеме. Обязательно заполни divergence_areas (мин. 3 пункта), discussion_questions (мин. 3 вопроса), summary (2-3 абзаца). Пиши на русском.',
         },
         { role: 'user', content: userContent },
       ],
-      max_tokens: 2048,
+      max_tokens: 4096,
       temperature: 0.3,
+      response_format: responseFormat,
     }),
   })
 

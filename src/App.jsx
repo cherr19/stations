@@ -1127,7 +1127,7 @@ function ComparisonScreen({
               Устарело
             </span>
           )}
-          {aiAnalysisOutdated && onRefreshAiAnalysis && (
+          {aiAnalysis && onRefreshAiAnalysis && !aiAnalysisLoading && (
             <button
               type="button"
               onClick={onRefreshAiAnalysis}
@@ -1217,6 +1217,11 @@ function ComparisonScreen({
                   <h4 className="text-neutral-400 font-medium mb-2">Резюме</h4>
                   <p className="text-neutral-300 whitespace-pre-wrap">{aiAnalysis.summary}</p>
                 </div>
+              )}
+              {aiAnalysis && !aiAnalysis.summary && (
+                <p className="text-amber-400/90 text-xs">
+                  Отчёт мог обрезаться. Нажмите «Обновить анализ» выше для полной версии.
+                </p>
               )}
             </div>
           )}
