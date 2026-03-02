@@ -345,11 +345,15 @@ export default function FoundersVisionTool() {
     setAiAnalysisLoading(true)
     setAiAnalysisError(null)
     try {
-      const { score, max, details } = calculateScore(tanyaData, alenaData)
+      // Загружаем свежие данные прямо перед анализом — не полагаемся на state, чтобы избежать расхождений
+      const room = await storage.loadRoom(roomId)
+      const freshTanya = room.tanyaData || {}
+      const freshAlena = room.alenaData || {}
+      const { score, max, details } = calculateScore(freshTanya, freshAlena)
       const pct = max > 0 ? ((score / max) * 100).toFixed(1) : '0'
       const result = await runAiAnalysis({
-        tanyaData,
-        alenaData,
+        tanyaData: freshTanya,
+        alenaData: freshAlena,
         score,
         max,
         pct,
@@ -365,7 +369,7 @@ export default function FoundersVisionTool() {
     } finally {
       setAiAnalysisLoading(false)
     }
-  }, [roomId, tanyaData, alenaData])
+  }, [roomId])
 
   useEffect(() => {
     if (currentScreen === 'comparison' && roomId) {

@@ -243,9 +243,17 @@ export async function loadRoom(roomId) {
         .eq('room_id', roomId)
         .maybeSingle()
       if (error) throw error
+      const ensureObj = (v) => {
+        if (v == null) return {}
+        if (typeof v === 'object' && !Array.isArray(v)) return v
+        if (typeof v === 'string') {
+          try { return JSON.parse(v) } catch { return {} }
+        }
+        return {}
+      }
       const out = {
-        tanyaData: data?.tanya_data ?? {},
-        alenaData: data?.alena_data ?? {},
+        tanyaData: ensureObj(data?.tanya_data),
+        alenaData: ensureObj(data?.alena_data),
         aiAnalysis: data?.ai_analysis ?? null,
         aiAnalysisAt: data?.ai_analysis_at ?? null,
         roomUpdatedAt: data?.updated_at ?? null,

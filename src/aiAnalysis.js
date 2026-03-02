@@ -50,9 +50,20 @@ export async function runAiAnalysis(input) {
   const detailsText = buildDetailsText(details)
   const tanyaSummary = buildAnswersSummary(tanyaData, 'Ответы Тани')
   const alenaSummary = buildAnswersSummary(alenaData, 'Ответы Алены')
+  const hasAlena = Object.keys(alenaData || {}).some((k) => {
+    const v = alenaData[k]
+    if (v == null) return false
+    if (typeof v === 'string') return v.trim() !== ''
+    if (Array.isArray(v)) return v.length > 0
+    if (typeof v === 'object') return Object.values(v).some((x) => x != null && String(x).trim() !== '')
+    return true
+  })
+  const dataStatus = hasAlena ? 'Обе со-основательницы заполнили опросник. Ответы Алены обязательно учти — они есть в блоке «Ответы Алены» ниже.' : 'Только Таня заполнила.'
 
   const userContent = `
 Ниже данные двух со-основательниц (Таня и Алена), заполнивших опросник по выравниванию видения (Founders Vision Alignment).
+
+**ВАЖНО: ${dataStatus}**
 
 **Численный скор совместимости (по формальному совпадению ответов):** ${score} / ${max} баллов (${pct}%).
 
