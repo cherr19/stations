@@ -812,24 +812,24 @@ function NoRoomScreen({ onPasteRoomId }) {
   const [pastedId, setPastedId] = useState('')
   return (
     <div className="max-w-lg mx-auto px-6 py-16 text-center">
-      <h1 className="text-2xl font-bold text-white mb-4">Нет комнаты</h1>
-      <p className="text-neutral-400 mb-8">
+      <h1 className="text-2xl font-bold text-black mb-4">Нет комнаты</h1>
+      <p className="text-ink mb-8">
         Получите ссылку на комнату у организатора (администратора). По этой ссылке вы попадёте в анкету.
       </p>
-      <div className="border border-neutral-700 rounded-lg p-4 bg-neutral-950 text-left">
-        <p className="text-neutral-500 text-sm mb-2">Если вам прислали только ID комнаты, вставьте его ниже:</p>
+      <div className="border border-border rounded-lg p-4 bg-white/60 text-left">
+        <p className="text-ink text-sm mb-2">Если вам прислали только ID комнаты, вставьте его ниже:</p>
         <div className="flex gap-2">
           <input
             type="text"
             value={pastedId}
             onChange={(e) => setPastedId(e.target.value)}
             placeholder="например: a1b2c3d4-..."
-            className="flex-1 px-3 py-2 bg-black border border-neutral-700 rounded text-white text-sm placeholder-neutral-600 focus:border-lime-400 focus:outline-none"
+            className="flex-1 px-3 py-2 bg-white border border-border rounded text-ink text-sm placeholder-inkMuted focus:border-ink focus:outline-none"
           />
           <button
             type="button"
             onClick={() => onPasteRoomId(pastedId)}
-            className="px-4 py-2 bg-lime-500 hover:bg-lime-400 text-black font-medium text-sm rounded"
+            className="px-4 py-2 bg-ink hover:bg-ink/90 text-paper font-medium text-sm rounded"
           >
             Войти
           </button>
@@ -853,17 +853,17 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+      <h1 className="text-3xl font-bold tracking-tight text-black mb-2">
         Аудит видения основателей
       </h1>
       {lockedUser && (
-        <p className="text-neutral-300 text-sm mb-4">
-          Вы вошли по ссылке как <strong className="text-white">{lockedName}</strong>. Сменить пользователя нельзя.
+        <p className="text-inkMuted text-sm mb-4">
+          Вы вошли по ссылке как <strong className="text-ink">{lockedName}</strong>. Сменить пользователя нельзя.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        <span className="text-neutral-500">Комната:</span>
-        <code className="text-lime-400/90 bg-neutral-900 px-2 py-1 rounded font-mono text-sm" title={roomId}>
+        <span className="text-inkMuted">Комната:</span>
+        <code className="text-ink bg-white/80 border border-border px-2 py-1 rounded font-mono text-sm" title={roomId}>
           {shortRoomId}
         </code>
         {admin && (
@@ -874,15 +874,15 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
               storage.setRoomIdInUrl(id)
               window.location.reload()
             }}
-            className="text-lime-400 hover:underline text-sm"
+            className="text-ink hover:underline text-sm"
           >
             Создать новую
           </button>
         )}
       </div>
       {admin && roomsWithData.length > 0 && (
-        <div className="border border-neutral-700 rounded-lg p-4 mb-6 bg-neutral-950">
-          <p className="text-neutral-400 text-sm font-medium mb-3">Комнаты, где есть данные (переход по клику):</p>
+        <div className="border border-border rounded-lg p-4 mb-6 bg-white/60">
+          <p className="text-ink text-sm font-medium mb-3">Комнаты, где есть данные (переход по клику):</p>
           <ul className="space-y-2 max-h-48 overflow-y-auto">
             {roomsWithData.map((r) => {
               const short = `${r.roomId.slice(0, 8)}…`
@@ -894,15 +894,15 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
                   <button
                     type="button"
                     onClick={() => onSelectRoom?.(r.roomId)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm flex flex-wrap items-center gap-x-3 gap-y-1 transition-colors ${
-                      isCurrent ? 'bg-lime-500/20 border border-lime-500/50' : 'hover:bg-neutral-800 border border-transparent'
+                    className={`w-full text-left px-3 py-2 rounded text-sm flex flex-wrap items-center gap-x-3 gap-y-1 transition-colors border ${
+                      isCurrent ? 'bg-ink/10 border-ink/40' : 'hover:bg-white/80 border-border'
                     }`}
                     title={r.roomId}
                   >
-                    <code className="font-mono text-lime-400/90">{short}</code>
-                    <span className="text-neutral-500">Таня: {tLabel}</span>
-                    <span className="text-neutral-500">Алена: {aLabel}</span>
-                    {isCurrent && <span className="text-lime-400 text-xs">текущая</span>}
+                    <code className="font-mono text-ink">{short}</code>
+                    <span className="text-inkMuted">Таня: {tLabel}</span>
+                    <span className="text-inkMuted">Алена: {aLabel}</span>
+                    {isCurrent && <span className="text-ink text-xs">текущая</span>}
                   </button>
                 </li>
               )
@@ -910,18 +910,18 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
           </ul>
         </div>
       )}
-      <div className="border border-neutral-700 rounded-lg p-4 mb-8 bg-neutral-950">
-        <p className="text-neutral-400 text-sm mb-3">Кто заполняет в этой комнате — нажми на себя, чтобы войти в свою анкету:</p>
+      <div className="border border-border rounded-lg p-4 mb-8 bg-white/60">
+        <p className="text-ink text-sm mb-3">Кто заполняет в этой комнате — нажми на себя, чтобы войти в свою анкету:</p>
         <div className="flex flex-wrap gap-4 text-sm">
-          <span className="text-purple-400 font-medium">Таня</span>
-          <span className="text-neutral-500">{tanyaStatus}</span>
-          <span className="text-neutral-600">·</span>
-          <span className="text-cyan-400 font-medium">Алена</span>
-          <span className="text-neutral-500">{alenaStatus}</span>
+          <span className="text-purple-600 font-medium">Таня</span>
+          <span className="text-inkMuted">{tanyaStatus}</span>
+          <span className="text-inkMuted">·</span>
+          <span className="text-cyan-600 font-medium">Алена</span>
+          <span className="text-inkMuted">{alenaStatus}</span>
         </div>
       </div>
-      <div className="border-l-4 border-lime-400 bg-neutral-950 pl-6 py-4 mb-10">
-        <p className="text-neutral-300 text-sm">
+      <div className="border-l-4 border-ink/30 bg-white/50 pl-6 py-4 mb-10 rounded-r">
+        <p className="text-ink text-sm">
           Каждый из вас независимо заполняет опросник. Ответы сохраняются в облаке и не видны друг другу до момента сравнения. Затем вы вместе смотрите результат и рекомендацию (GO / PIVOT / NO-GO).
         </p>
       </div>
@@ -930,54 +930,54 @@ function SelectUserScreen({ roomId, partnerStatus = {}, isAdmin: admin, lockedUs
           type="button"
           onClick={() => !lockedUser || lockedUser === 'tanya' ? onSelect('tanya') : undefined}
           disabled={lockedUser === 'alena'}
-          className={`border-2 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
+          className={`border-2 rounded-lg bg-white/80 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
             lockedUser === 'tanya'
-              ? 'border-purple-400 hover:border-purple-300'
+              ? 'border-purple-500 hover:border-purple-400'
               : lockedUser === 'alena'
-                ? 'border-neutral-800 opacity-50 cursor-not-allowed'
-                : 'border-neutral-800 hover:border-purple-400'
+                ? 'border-border opacity-50 cursor-not-allowed'
+                : 'border-border hover:border-purple-400'
           }`}
         >
-          <span className="w-20 h-20 rounded-full bg-purple-500/20 border border-purple-400 flex items-center justify-center text-3xl font-bold text-purple-400">
+          <span className="w-20 h-20 rounded-full bg-purple-100 border border-purple-400 flex items-center justify-center text-3xl font-bold text-purple-600">
             T
           </span>
-          <span className="text-xl font-semibold text-white">Таня</span>
-          <span className="text-xs text-neutral-500">{tanyaStatus}</span>
+          <span className="text-xl font-semibold text-ink">Таня</span>
+          <span className="text-xs text-inkMuted">{tanyaStatus}</span>
         </button>
         <button
           type="button"
           onClick={() => !lockedUser || lockedUser === 'alena' ? onSelect('alena') : undefined}
           disabled={lockedUser === 'tanya'}
-          className={`border-2 bg-neutral-950 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
+          className={`border-2 rounded-lg bg-white/80 p-8 flex flex-col items-center justify-center gap-3 transition-colors ${
             lockedUser === 'alena'
-              ? 'border-cyan-400 hover:border-cyan-300'
+              ? 'border-cyan-500 hover:border-cyan-400'
               : lockedUser === 'tanya'
-                ? 'border-neutral-800 opacity-50 cursor-not-allowed'
-                : 'border-neutral-800 hover:border-cyan-400'
+                ? 'border-border opacity-50 cursor-not-allowed'
+                : 'border-border hover:border-cyan-400'
           }`}
         >
-          <span className="w-20 h-20 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-3xl font-bold text-cyan-400">
+          <span className="w-20 h-20 rounded-full bg-cyan-100 border border-cyan-400 flex items-center justify-center text-3xl font-bold text-cyan-600">
             A
           </span>
-          <span className="text-xl font-semibold text-white">Алена</span>
-          <span className="text-xs text-neutral-500">{alenaStatus}</span>
+          <span className="text-xl font-semibold text-ink">Алена</span>
+          <span className="text-xs text-inkMuted">{alenaStatus}</span>
         </button>
       </div>
       {roomId && (
-        <div className="mt-8 pt-6 border-t border-neutral-800">
-          <p className="text-neutral-500 text-sm mb-2">Отправить ссылку (скопирует в буфер):</p>
+        <div className="mt-8 pt-6 border-t border-border">
+          <p className="text-inkMuted text-sm mb-2">Отправить ссылку (скопирует в буфер):</p>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => handleCopy('alena')}
-              className="text-sm border border-neutral-700 hover:border-cyan-400 text-cyan-400 px-4 py-2 transition-colors"
+              className="text-sm border border-border hover:border-cyan-500 text-cyan-600 px-4 py-2 transition-colors rounded"
             >
               Ссылка для Алены
             </button>
             <button
               type="button"
               onClick={() => handleCopy('tanya')}
-              className="text-sm border border-neutral-700 hover:border-purple-400 text-purple-400 px-4 py-2 transition-colors"
+              className="text-sm border border-border hover:border-purple-500 text-purple-600 px-4 py-2 transition-colors rounded"
             >
               Ссылка для Тани
             </button>
@@ -1002,7 +1002,7 @@ function IntroScreen({ userName, onStart, onSwitchUser }) {
           </button>
         </div>
       )}
-      <h1 className="text-3xl font-bold tracking-tight text-ink mb-2">
+      <h1 className="text-3xl font-bold tracking-tight text-black mb-2">
         Привет, {userName}
       </h1>
       <p className="text-inkMuted mb-8">
