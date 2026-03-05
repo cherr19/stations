@@ -21,114 +21,249 @@ const USER_COLORS = {
   alena: { border: 'border-cyan-400', bg: 'bg-cyan-400/10', text: 'text-cyan-400', badge: 'border-cyan-400 text-cyan-400' },
 }
 
-function Section({ title, id, children, expanded, toggle }) {
+function Section({ num, title, id, children, expanded, toggle }) {
   const isExpanded = expanded[id] !== false
   return (
-    <div className="border border-neutral-800 mb-4">
+    <div className="border border-border rounded-lg mb-4 bg-white/60 shadow-sm">
       <button
         type="button"
         onClick={() => toggle(id)}
-        className="w-full px-4 py-3 bg-neutral-950 hover:bg-neutral-900 flex items-center justify-between text-left"
+        className="w-full px-4 py-3 flex items-center justify-between text-left rounded-t-lg hover:bg-white/40 transition-colors"
       >
-        <h3 className="font-semibold text-white text-base">{title}</h3>
+        <h3 className="font-semibold text-ink text-base">
+          {num != null ? `${num}. ` : ''}{title}
+        </h3>
         {isExpanded ? (
-          <ChevronDown className="w-5 h-5 text-neutral-600 shrink-0" />
+          <ChevronDown className="w-5 h-5 text-inkMuted shrink-0" />
         ) : (
-          <ChevronRight className="w-5 h-5 text-neutral-600 shrink-0" />
+          <ChevronRight className="w-5 h-5 text-inkMuted shrink-0" />
         )}
       </button>
-      {isExpanded && <div className="p-4 space-y-4 bg-black">{children}</div>}
+      {isExpanded && (
+        <div className="p-4 space-y-4 border-t border-border rounded-b-lg bg-white/40">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
 
-function Question({ label, type, value, onChange, options, placeholder, maxSelect, fields }) {
+const CURRENCIES = [{ id: 'USD', label: 'USD' }, { id: 'EUR', label: 'EUR' }, { id: 'RUB', label: 'RUB' }]
+
+function Question({ label, type, value, onChange, options, placeholder, maxSelect, fields, expandable, currencyValue, onCurrencyChange }) {
+  const [textareaExpanded, setTextareaExpanded] = useState(false)
+  const isTextarea = type === 'textarea'
+  const rows = expandable && textareaExpanded ? 12 : (isTextarea ? 4 : 3)
+
   return (
     <div className="space-y-2">
-      <label className="block text-base font-medium text-neutral-400">{label}</label>
-      {type === 'textarea' && (
-        <textarea
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={3}
-          className="w-full px-4 py-2 border border-neutral-800 bg-black focus:border-lime-400 focus:outline-none resize-none text-white placeholder-neutral-700"
-        />
-      )}
-      {type === 'number' && (
-        <input
-          type="number"
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-          placeholder={placeholder}
-          className="w-full px-4 py-2 border border-neutral-800 bg-black focus:border-lime-400 focus:outline-none text-white placeholder-neutral-700"
-        />
-      )}
-      {type === 'radio' && (
-        <div className="space-y-2">
-          {options.map((opt) => (
-            <label key={opt} className="flex items-start gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                checked={value === opt}
-                onChange={() => onChange(opt)}
-                className="mt-1 accent-lime-400"
-              />
-              <span className="text-base text-neutral-400 group-hover:text-white transition-colors">{opt}</span>
-            </label>
-          ))}
-        </div>
-      )}
-      {type === 'multicheck' && (
-        <div className="space-y-2">
-          {options.map((opt) => {
-            const arr = Array.isArray(value) ? value : []
-            const isChecked = arr.includes(opt)
-            const canSelect = !maxSelect || arr.length < maxSelect || isChecked
-            return (
-              <label
-                key={opt}
-                className={`flex items-start gap-2 ${canSelect ? 'cursor-pointer group' : 'opacity-50 cursor-not-allowed'}`}
+      <label className="block text-base font-medium text-ink">{label}</label>
+      <div className="rounded-md border border-border bg-white/80 p-3 focus-within:ring-2 focus-within:ring-ink/20">
+        {type === 'textarea' && (
+          <>
+            <textarea
+              value={value ?? ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              rows={rows}
+              className="w-full px-3 py-2 border-0 bg-transparent focus:ring-0 focus:outline-none resize-none text-ink placeholder-inkMuted text-base"
+            />
+            {expandable && (
+              <button
+                type="button"
+                onClick={() => setTextareaExpanded((e) => !e)}
+                className="text-xs text-inkMuted hover:text-ink mt-1"
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  disabled={!canSelect}
-                  onChange={(e) => {
-                    let newVal = [...arr]
-                    if (e.target.checked) newVal.push(opt)
-                    else newVal = newVal.filter((x) => x !== opt)
-                    onChange(newVal)
-                  }}
-                  className="mt-1 accent-lime-400"
-                />
-                <span className="text-base text-neutral-400 group-hover:text-white transition-colors">{opt}</span>
+                {textareaExpanded ? 'Свернуть' : 'Раскрыть на весь текст'}
+              </button>
+            )}
+          </>
+        )}
+        {type === 'text' && (
+          <input
+            type="text"
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full px-3 py-2 border-0 bg-transparent focus:ring-0 focus:outline-none text-ink placeholder-inkMuted text-base"
+          />
+        )}
+        {type === 'number' && (
+          <input
+            type="number"
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+            placeholder={placeholder}
+            className="w-full px-3 py-2 border-0 bg-transparent focus:ring-0 focus:outline-none text-ink placeholder-inkMuted"
+          />
+        )}
+        {type === 'number_currency' && (
+          <div className="flex gap-2 items-center flex-wrap">
+            <input
+              type="number"
+              value={typeof value === 'object' && value != null ? value.value : value ?? ''}
+              onChange={(e) => {
+                const v = e.target.value === '' ? undefined : Number(e.target.value)
+                const cur = currencyValue || (typeof value === 'object' && value?.currency) || 'USD'
+                onChange(v != null ? { value: v, currency: cur } : undefined)
+              }}
+              placeholder={placeholder}
+              className="flex-1 min-w-[100px] px-3 py-2 border-0 bg-transparent focus:ring-0 focus:outline-none text-ink placeholder-inkMuted"
+            />
+            <select
+              value={(typeof value === 'object' && value?.currency) || currencyValue || 'USD'}
+              onChange={(e) => {
+                const c = e.target.value
+                if (onCurrencyChange) onCurrencyChange(c)
+                else onChange(typeof value === 'object' ? { ...value, currency: c } : { value: value ?? undefined, currency: c })
+              }}
+              className="px-2 py-2 border border-border rounded text-ink bg-white/80 text-sm"
+            >
+              {CURRENCIES.map((cur) => (
+                <option key={cur.id} value={cur.id}>{cur.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {type === 'radio' && (
+          <div className="space-y-2">
+            {options.map((opt) => (
+              <label key={opt} className="flex items-start gap-2 cursor-pointer group">
+                <input type="radio" checked={value === opt} onChange={() => onChange(opt)} className="mt-1 accent-ink" />
+                <span className="text-base text-inkMuted group-hover:text-ink transition-colors">{opt}</span>
               </label>
-            )
-          })}
-          {maxSelect != null && (
-            <p className="text-xs text-neutral-600 mt-2">
-              Выбрано: {Array.isArray(value) ? value.length : 0} / {maxSelect}
-            </p>
-          )}
-        </div>
-      )}
-      {type === 'compound' && fields && (
-        <div className="space-y-3">
-          {fields.map((f) => (
-            <div key={f.key}>
-              <span className="text-xs text-neutral-500 block mb-1">{f.label}</span>
+            ))}
+          </div>
+        )}
+        {type === 'multicheck' && (
+          <div className="space-y-2">
+            {options.map((opt) => {
+              const arr = Array.isArray(value) ? value : []
+              const isChecked = arr.includes(opt)
+              const canSelect = !maxSelect || arr.length < maxSelect || isChecked
+              return (
+                <label key={opt} className={`flex items-start gap-2 ${canSelect ? 'cursor-pointer group' : 'opacity-50 cursor-not-allowed'}`}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={!canSelect}
+                    onChange={(e) => {
+                      let newVal = [...arr]
+                      if (e.target.checked) newVal.push(opt)
+                      else newVal = newVal.filter((x) => x !== opt)
+                      onChange(newVal)
+                    }}
+                    className="mt-1 accent-ink"
+                  />
+                  <span className="text-base text-inkMuted group-hover:text-ink transition-colors">{opt}</span>
+                </label>
+              )
+            })}
+            {maxSelect != null && (
+              <p className="text-xs text-inkMuted mt-2">Выбрано: {Array.isArray(value) ? value.length : 0} / {maxSelect}</p>
+            )}
+          </div>
+        )}
+        {type === 'multicheck_why' && (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              {options.map((opt) => {
+                const obj = value && typeof value === 'object' ? value : { selected: [], why: '' }
+                const arr = Array.isArray(obj.selected) ? obj.selected : []
+                const isChecked = arr.includes(opt)
+                const canSelect = !maxSelect || arr.length < maxSelect || isChecked
+                return (
+                  <label key={opt} className={`flex items-start gap-2 ${canSelect ? 'cursor-pointer group' : 'opacity-50 cursor-not-allowed'}`}>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={!canSelect}
+                      onChange={(e) => {
+                        let newArr = [...arr]
+                        if (e.target.checked) newArr.push(opt)
+                        else newArr = newArr.filter((x) => x !== opt)
+                        onChange({ ...obj, selected: newArr })
+                      }}
+                      className="mt-1 accent-ink"
+                    />
+                    <span className="text-base text-inkMuted group-hover:text-ink transition-colors">{opt}</span>
+                  </label>
+                )
+              })}
+              {maxSelect != null && (
+                <p className="text-xs text-inkMuted">Выбрано: {Array.isArray(value?.selected) ? value.selected.length : 0} / {maxSelect}</p>
+              )}
+            </div>
+            <div>
+              <span className="text-xs text-inkMuted block mb-1">Кратко поясните почему (по желанию)</span>
               <input
                 type="text"
-                value={value?.[f.key] ?? ''}
-                onChange={(e) => onChange({ ...(value || {}), [f.key]: e.target.value })}
-                placeholder={f.placeholder}
-                className="w-full px-4 py-2 border border-neutral-800 bg-black focus:border-lime-400 focus:outline-none text-white placeholder-neutral-700 text-sm"
+                value={value?.why ?? ''}
+                onChange={(e) => onChange({ ...(value || { selected: [] }), why: e.target.value })}
+                placeholder="Необязательно"
+                className="w-full px-3 py-2 border border-border rounded bg-white/60 text-ink text-sm placeholder-inkMuted"
               />
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+        {type === 'sortable_multicheck' && (
+          <div className="space-y-2">
+            {options.map((opt) => {
+              const arr = Array.isArray(value) ? value : []
+              const isChecked = arr.includes(opt)
+              const canSelect = !maxSelect || arr.length < maxSelect || isChecked
+              return (
+                <label key={opt} className={`flex items-start gap-2 ${canSelect ? 'cursor-pointer group' : 'opacity-50 cursor-not-allowed'}`}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={!canSelect}
+                    onChange={(e) => {
+                      let newVal = [...arr]
+                      if (e.target.checked) newVal.push(opt)
+                      else newVal = newVal.filter((x) => x !== opt)
+                      onChange(newVal)
+                    }}
+                    className="mt-1 accent-ink"
+                  />
+                  <span className="text-base text-inkMuted group-hover:text-ink transition-colors">{opt}</span>
+                </label>
+              )
+            })}
+            {Array.isArray(value) && value.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-border">
+                <span className="text-xs text-inkMuted block mb-1">Порядок приоритета (1 — главное):</span>
+                <ul className="space-y-1">
+                  {value.map((item, i) => (
+                    <li key={item} className="flex items-center gap-2 text-sm text-ink">
+                      <span className="w-5 text-inkMuted">{i + 1}.</span>
+                      <span>{item}</span>
+                      <button type="button" onClick={() => { const v = [...value]; [v[i - 1], v[i]] = [v[i], v[i - 1]]; onChange(v) }} disabled={i === 0} className="text-inkMuted hover:text-ink disabled:opacity-30">↑</button>
+                      <button type="button" onClick={() => { const v = [...value]; [v[i], v[i + 1]] = [v[i + 1], v[i]]; onChange(v) }} disabled={i === value.length - 1} className="text-inkMuted hover:text-ink disabled:opacity-30">↓</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        {type === 'compound' && fields && (
+          <div className="space-y-3">
+            {fields.map((f) => (
+              <div key={f.key}>
+                <span className="text-xs text-inkMuted block mb-1">{f.label}</span>
+                <input
+                  type="text"
+                  value={value?.[f.key] ?? ''}
+                  onChange={(e) => onChange({ ...(value || {}), [f.key]: e.target.value })}
+                  placeholder={f.placeholder}
+                  className="w-full px-3 py-2 border border-border rounded bg-white/60 text-ink text-sm placeholder-inkMuted focus:outline-none focus:ring-1 focus:ring-ink/20"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -463,10 +598,10 @@ export default function FoundersVisionTool() {
 
   if (isLoading && currentScreen === 'select') {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-paper flex items-center justify-center">
         <div className="text-center py-20">
-          <div className="w-12 h-12 border-2 border-neutral-800 border-t-lime-400 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-400">Загрузка...</p>
+          <div className="w-12 h-12 border-2 border-border border-t-ink rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-inkMuted">Загрузка...</p>
         </div>
       </div>
     )
@@ -475,12 +610,12 @@ export default function FoundersVisionTool() {
   const showNoRoom = currentScreen === 'select' && !roomId && !isAdmin
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-paper text-ink flex flex-col">
       {isAdmin && (
         <button
           type="button"
           onClick={() => setShowLogs((v) => !v)}
-          className="fixed top-4 left-4 z-40 px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-neutral-400 hover:text-white text-xs flex items-center gap-2"
+          className="fixed top-4 left-4 z-40 px-3 py-2 rounded bg-white/80 border border-border text-inkMuted hover:text-ink text-xs flex items-center gap-2 shadow"
           title="Показать логи"
         >
           <Bug className="w-3.5 h-3.5" />
@@ -488,27 +623,27 @@ export default function FoundersVisionTool() {
         </button>
       )}
       {showLogs && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-white font-semibold">Логи приложения</h3>
+        <div className="fixed inset-0 z-50 bg-ink/20 flex flex-col p-4">
+          <div className="flex justify-between items-center mb-2 bg-paper rounded-lg p-3 border border-border">
+            <h3 className="text-ink font-semibold">Логи приложения</h3>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => logger.clearLogs()}
-                className="px-3 py-1 text-sm border border-neutral-600 text-neutral-400 hover:text-white"
+                className="px-3 py-1 text-sm border border-border text-inkMuted hover:text-ink rounded"
               >
                 Очистить
               </button>
               <button
                 type="button"
                 onClick={() => setShowLogs(false)}
-                className="px-3 py-1 text-sm border border-neutral-600 text-neutral-400 hover:text-white"
+                className="px-3 py-1 text-sm border border-border text-inkMuted hover:text-ink rounded"
               >
                 Закрыть
               </button>
             </div>
           </div>
-          <pre className="flex-1 overflow-auto text-xs text-neutral-400 font-mono bg-neutral-950 p-4 rounded border border-neutral-800 whitespace-pre-wrap break-words">
+          <pre className="flex-1 overflow-auto text-xs text-inkMuted font-mono bg-white/90 p-4 rounded-lg border border-border whitespace-pre-wrap break-words">
             {logger.getLogEntries().length === 0
               ? 'Нет записей'
               : logger.getLogEntries().map((e, i) => (
@@ -521,23 +656,23 @@ export default function FoundersVisionTool() {
         </div>
       )}
       {showComparisonConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-neutral-950 border border-neutral-700 max-w-md w-full p-6 rounded">
-            <p className="text-white text-base mb-4">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-paper border border-border max-w-md w-full p-6 rounded-lg shadow-lg">
+            <p className="text-ink text-base mb-4">
               Партнёр ещё не закончил заполнение. Сравнение будет неполным (много пустых полей и заниженный балл). Всё равно перейти к сравнению?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
                 onClick={() => setShowComparisonConfirm(false)}
-                className="px-4 py-2 border border-neutral-600 text-neutral-300 hover:text-white"
+                className="px-4 py-2 border border-border text-inkMuted hover:text-ink rounded"
               >
                 Отмена
               </button>
               <button
                 type="button"
                 onClick={confirmGoToComparison}
-                className="px-4 py-2 bg-lime-400 text-black font-medium"
+                className="px-4 py-2 bg-ink text-paper font-medium rounded"
               >
                 Перейти к сравнению
               </button>
@@ -585,7 +720,7 @@ export default function FoundersVisionTool() {
             )}
           </div>
           <aside className="w-[400px] shrink-0 hidden lg:flex flex-col items-start justify-start pt-6 pr-4 pb-4">
-            <div className="w-full rounded-2xl border-2 border-lime-400/60 bg-neutral-950 overflow-hidden shadow-[0_0_0_1px_rgba(34,197,94,0.2)]" style={{ height: '66.67vh', maxHeight: '66.67vh' }}>
+            <div className="w-full rounded-2xl border-2 border-border bg-white/80 overflow-hidden shadow-sm" style={{ height: '66.67vh', maxHeight: '66.67vh' }}>
               <SandboxChat
                 partTitle={sandboxPartTitle}
                 partNumber={sandboxPartNumber}
@@ -861,36 +996,36 @@ function IntroScreen({ userName, onStart, onSwitchUser }) {
           <button
             type="button"
             onClick={onSwitchUser}
-            className="text-sm text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-4 py-2 transition-colors"
+            className="text-sm text-inkMuted hover:text-ink border border-border hover:border-ink/30 px-4 py-2 transition-colors rounded"
           >
             Сменить пользователя
           </button>
         </div>
       )}
-      <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+      <h1 className="text-3xl font-bold tracking-tight text-ink mb-2">
         Привет, {userName}
       </h1>
-      <p className="text-neutral-400 mb-8">
+      <p className="text-inkMuted mb-8">
         Опросник состоит из трёх частей. Заполняй в своём темпе; ответы сохраняются автоматически.
       </p>
-      <ul className="space-y-2 text-neutral-400 mb-10">
+      <ul className="space-y-2 text-inkMuted mb-10">
         <li className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-lime-400" />
+          <span className="w-2 h-2 rounded-full bg-ink/50" />
           Часть 1: Личный аудит (≈30 мин)
         </li>
         <li className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-lime-400" />
+          <span className="w-2 h-2 rounded-full bg-ink/50" />
           Часть 2: Бизнес-видение (≈30 мин)
         </li>
         <li className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-lime-400" />
-          Часть 3: Сценарный анализ (≈20 мин)
+          <span className="w-2 h-2 rounded-full bg-ink/50" />
+          Часть 3: Сценарный анализ (≈10 мин)
         </li>
       </ul>
       <button
         type="button"
         onClick={onStart}
-        className="bg-lime-400 hover:bg-lime-300 text-black font-semibold px-8 py-3 uppercase tracking-wide transition-colors"
+        className="bg-ink hover:bg-ink/90 text-paper font-semibold px-8 py-3 rounded transition-colors"
       >
         Начать аудит
       </button>
@@ -929,9 +1064,9 @@ function FillingScreen({
 
   return (
     <div className="max-w-3xl mx-auto px-6 pb-24">
-      <header className="sticky top-0 z-10 bg-black/95 border-b border-neutral-800 py-4 mb-6">
+      <header className="sticky top-0 z-10 bg-paper/95 border-b border-border py-4 mb-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-lg font-bold text-ink">
             {part?.title}
             <span className={`ml-2 text-xs px-2 py-0.5 border rounded ${theme.badge}`}>
               {USER_LABELS[currentUser]}
@@ -943,8 +1078,8 @@ function FillingScreen({
                 key={id}
                 type="button"
                 onClick={() => setCurrentPart(id)}
-                className={`px-3 py-1.5 text-sm border transition-colors ${
-                  currentPart === id ? `${theme.border} ${theme.bg} ${theme.text}` : 'border-neutral-800 text-neutral-500 hover:border-neutral-600'
+                className={`px-3 py-1.5 text-sm border transition-colors rounded ${
+                  currentPart === id ? `${theme.border} ${theme.bg} ${theme.text}` : 'border-border text-inkMuted hover:border-ink/30'
                 }`}
               >
                 Часть {id}
@@ -957,20 +1092,20 @@ function FillingScreen({
             <div
               key={id}
               className={`h-1 flex-1 rounded ${
-                id < currentPart ? 'bg-lime-400' : id === currentPart ? (currentUser === 'tanya' ? 'bg-purple-400' : 'bg-cyan-400') : 'bg-neutral-800'
+                id < currentPart ? 'bg-ink/40' : id === currentPart ? (currentUser === 'tanya' ? 'bg-purple-500/70' : 'bg-cyan-500/70') : 'bg-border'
               }`}
             />
           ))}
         </div>
       </header>
 
-      <div className="mb-6 p-4 border border-neutral-700 bg-neutral-950 rounded">
-        <h3 className="text-base font-semibold text-white mb-3">Мои ответы</h3>
+      <div className="mb-6 p-4 border border-border bg-white/60 rounded-lg">
+        <h3 className="text-base font-semibold text-ink mb-3">Мои ответы</h3>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => onDownloadMyResults()}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-lime-500/50 bg-lime-500/10 text-lime-400 hover:bg-lime-500/20 rounded text-base font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-white/80 text-ink hover:bg-white rounded text-base font-medium transition-colors"
           >
             <FileText className="w-4 h-4" />
             Скачать в MD
@@ -978,12 +1113,12 @@ function FillingScreen({
           <button
             type="button"
             onClick={() => onDownloadMyResults?.('json')}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 rounded text-base font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-white/60 text-inkMuted hover:bg-white/80 rounded text-base font-medium transition-colors"
           >
             <Download className="w-4 h-4" />
             Скачать в JSON
           </button>
-          <label className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 rounded text-base font-medium cursor-pointer transition-colors">
+          <label className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-white/60 text-inkMuted hover:bg-white/80 rounded text-base font-medium cursor-pointer transition-colors">
             <input
               type="file"
               accept=".json"
@@ -1000,12 +1135,12 @@ function FillingScreen({
         </div>
       </div>
 
-      <div className={`mb-6 p-4 rounded border text-base font-medium ${
-        partnerFinished ? 'bg-emerald-950/50 border-emerald-700 text-emerald-300' :
-        partnerStarted ? 'bg-amber-950/30 border-amber-700/70 text-amber-300' :
-        'bg-neutral-900 border-neutral-700 text-neutral-400'
+      <div className={`mb-6 p-4 rounded-lg border text-base font-medium ${
+        partnerFinished ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+        partnerStarted ? 'bg-amber-50/80 border-amber-200 text-amber-800' :
+        'bg-white/40 border-border text-inkMuted'
       }`}>
-        <span className="text-neutral-500 font-normal">Партнёр: </span>
+        <span className="text-inkMuted font-normal">Партнёр: </span>
         {partnerName} — {partnerStatusText}
       </div>
 
@@ -1013,6 +1148,7 @@ function FillingScreen({
         <Section
           key={block.id}
           id={block.id}
+          num={block.num}
           title={block.title}
           expanded={expandedSections}
           toggle={toggleSection}
@@ -1028,24 +1164,27 @@ function FillingScreen({
               placeholder={q.placeholder}
               maxSelect={q.maxSelect}
               fields={q.fields}
+              expandable={q.expandable}
+              currencyValue={block.id === '1.1' ? data.currency_income : undefined}
+              onCurrencyChange={block.id === '1.1' ? (c) => updateData('currency_income', c) : undefined}
             />
           ))}
         </Section>
       ))}
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-neutral-800 bg-black/95 py-4 px-6 flex justify-between items-center flex-wrap gap-2">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-paper/95 py-4 px-6 flex justify-between items-center flex-wrap gap-2">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onSelectRoom}
-            className="border border-neutral-600 text-neutral-500 hover:text-white hover:border-neutral-500 px-4 py-2 text-sm transition-colors"
+            className="border border-border text-inkMuted hover:text-ink hover:border-ink/30 px-4 py-2 text-sm transition-colors rounded"
           >
             Выбрать комнату
           </button>
           <button
             type="button"
             onClick={onBackToPrevPart}
-            className="border border-neutral-800 bg-neutral-950 hover:border-neutral-700 text-neutral-400 hover:text-white px-6 py-2 transition-colors"
+            className="border border-border bg-white/60 hover:bg-white/80 text-ink px-6 py-2 transition-colors rounded"
           >
             Назад
           </button>
@@ -1054,7 +1193,7 @@ function FillingScreen({
           <button
             type="button"
             onClick={onGoToComparison}
-            className="border-2 border-lime-400 bg-lime-400/10 hover:bg-lime-400/20 text-white px-6 py-2 transition-colors"
+            className="border-2 border-ink bg-ink/10 hover:bg-ink/20 text-ink px-6 py-2 transition-colors rounded font-medium"
           >
             Перейти к сравнению
           </button>
@@ -1062,7 +1201,7 @@ function FillingScreen({
           <button
             type="button"
             onClick={() => setCurrentPart((p) => Math.min(3, p + 1))}
-            className="border-2 border-lime-400 bg-lime-400/10 hover:bg-lime-400/20 text-white px-6 py-2 transition-colors"
+            className="border-2 border-ink bg-ink/10 hover:bg-ink/20 text-ink px-6 py-2 transition-colors rounded font-medium"
           >
             Следующая часть
           </button>

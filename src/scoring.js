@@ -21,11 +21,13 @@ export function textSimilarity(a, b) {
   return unionSize > 0 ? intersection / unionSize : 0
 }
 
-/** Извлечь значение для сравнения: примитив или JSON-строка для объектов */
+/** Извлечь значение для сравнения */
 function getComparableValue(data, id) {
   const v = data[id]
   if (v == null) return null
   if (typeof v === 'object' && !Array.isArray(v)) {
+    if (v.value != null && 'currency' in v) return [v.value, v.currency].filter(Boolean).join(' ')
+    if (Array.isArray(v.selected)) return [...v.selected, v.why].filter(Boolean).join(' ')
     const parts = Object.values(v).map((x) => (x != null ? String(x).trim() : '')).filter(Boolean)
     return parts.join(' ')
   }
@@ -111,6 +113,11 @@ export function formatCellValue(val) {
   if (val == null) return '—'
   if (typeof val === 'object') {
     if (Array.isArray(val)) return val.join(', ') || '—'
+    if (val.value != null && ('currency' in val)) return [val.value, val.currency].filter(Boolean).join(' ') || '—'
+    if (Array.isArray(val.selected)) {
+      const s = val.selected.join(', ') || '—'
+      return val.why ? `${s} (${val.why})` : s
+    }
     const parts = Object.entries(val).map(([k, v]) => (v != null && String(v).trim() ? `${v}` : null)).filter(Boolean)
     return parts.join(' · ') || '—'
   }

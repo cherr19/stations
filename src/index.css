@@ -2,11 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Академический/тестовый стиль: мягкий фон, классический шрифт, без ярких акцентов */
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: Georgia, 'Times New Roman', serif;
   -webkit-font-smoothing: antialiased;
-  background: #000;
+  background: #f2f0eb;
   min-height: 100vh;
-  color: #fff;
+  color: #2c2c2c;
 }
